@@ -148,12 +148,11 @@
 
 <div class="controls" id="controlPanel">
   <div class="status-group">
-    <label><input type="radio" name="status" value="Done">1 - Done</label>
-    <label><input type="radio" name="status" value="Cropped">2 - Cropped</label>
-    <label><input type="radio" name="status" value="Marketing Material">3 - Marketing Material</label>
-    <label><input type="radio" name="status" value="Banner">4 - Banner</label>
-    <label><input type="radio" name="status" value="Vehicle Overlapped">5 - Vehicle Overlapped</label>
-    <label><input type="radio" name="status" value="Editing">6 - Editing</label>
+    <label><input type="radio" name="status" value="Side_Mirror">1 - Side_mirror</label>
+    <label><input type="radio" name="status" value="Headlight">2 - Headlight</label>
+    <label><input type="radio" name="status" value="Door-Handle">3 - Door-Handle</label>
+    <label><input type="radio" name="status" value="Tyre">4 - Tyre</label>
+    <label><input type="radio" name="status" value="Other">5 - Other</label>
   </div>
   <button onclick="submitForm()">Next</button>
 </div>
@@ -271,18 +270,16 @@
     const key = event.key.toLowerCase();
     const code = event.code;
 
-    if (key === "1" || key === "d" || code === "Numpad1") {
-      document.querySelector('input[value="Done"]').checked = true;
-    } else if (key === "2" || key === "c" || code === "Numpad2") {
-      document.querySelector('input[value="Cropped"]').checked = true;
-    } else if (key === "3" || key === "m" || code === "Numpad3") {
-      document.querySelector('input[value="Marketing Material"]').checked = true;
-    } else if (key === "4" || key === "b" || code === "Numpad4") {
-      document.querySelector('input[value="Banner"]').checked = true;
-    } else if (key === "5" || key === "v" || code === "Numpad5") {
-      document.querySelector('input[value="Vehicle Overlapped"]').checked = true;
-    } else if (key === "6" || key === "e" || code === "Numpad6") {
-      document.querySelector('input[value="Editing"]').checked = true;
+    if (key === "1" || key === "s" || code === "Numpad1") {
+      document.querySelector('input[value="Side_Mirror"]').checked = true;
+    } else if (key === "2" || key === "h" || code === "Numpad2") {
+      document.querySelector('input[value="Headlight"]').checked = true;
+    } else if (key === "3" || key === "d" || code === "Numpad3") {
+      document.querySelector('input[value="Door-Handle"]').checked = true;
+    } else if (key === "4" || key === "t" || code === "Numpad4") {
+      document.querySelector('input[value="Tyre"]').checked = true;
+    } else if (key === "5" || key === "o" || code === "Numpad5") {
+      document.querySelector('input[value="Other"]').checked = true;
     } else if (key === "enter") {
       event.preventDefault();
       submitForm();
@@ -292,3 +289,4 @@
 
 </body>
 </html>
+
