@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>QC Review Dashboard</title>
   <link rel="icon" href="https://spyne-prod-ai.s3.us-east-1.amazonaws.com/ai-dataset/2025/logo/unnamed.png" type="image/x-icon" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -27,7 +30,7 @@
     }
     .container {
       display: none;
-      flex-direction: column; /* Changed to column for better mobile layout */
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       padding: 1rem;
@@ -44,7 +47,7 @@
       max-height: 600px;
       object-fit: contain;
       margin-bottom: 5px;
-      border-radius: 8px; /* Added rounded corners */
+      border-radius: 8px;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
     .meta {
@@ -128,6 +131,15 @@
         flex: 1;
         max-width: 200px;
     }
+    .cache-control {
+        text-align: center;
+        margin: 10px;
+    }
+    .cache-control button {
+        background-color: #666;
+        font-size: 0.9em;
+        padding: 8px 15px;
+    }
     @media (min-width: 768px) {
       .container {
         flex-direction: row;
@@ -145,6 +157,10 @@
 <header>
   <h1>Image QC Review Dashboard</h1>
 </header>
+
+<div class="cache-control">
+  <button onclick="clearCacheAndReload()">🔄 Clear Cache & Reload Data</button>
+</div>
 
 <p id="progressText" class="progress"></p>
 
@@ -206,7 +222,20 @@
 <iframe id="hiddenSubmitFrame" name="hiddenSubmitFrame"></iframe>
 
 <script>
-  const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSEu3pra-CWUqYE-PZr2ipjZlc8HnI2fjY9DHoFiyg9EyXTxTVtW-F6kEzvkDHao70oQIs_q18pc_WW/pub?gid=0&single=true&output=csv&cacheBust=" + new Date().getTime();
+  // Generate a unique cache key that persists per session but changes on manual reload
+  let sessionCacheKey = sessionStorage.getItem('csvCacheKey');
+  if (!sessionCacheKey) {
+    sessionCacheKey = 'key_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    sessionStorage.setItem('csvCacheKey', sessionCacheKey);
+  }
+
+  function getCsvUrl() {
+    // Multiple cache-busting parameters
+    const timestamp = new Date().getTime();
+    const random = Math.random().toString(36).substr(2, 9);
+    return `https://docs.google.com/spreadsheets/d/e/2PACX-1vSEu3pra-CWUqYE-PZr2ipjZlc8HnI2fjY9DHoFiyg9EyXTxTVtW-F6kEzvkDHao70oQIs_q18pc_WW/pub?gid=0&single=true&output=csv&t=${timestamp}&r=${random}&cacheKey=${sessionCacheKey}`;
+  }
+
   let allData = [];
   let data = [];
   let currentIndex = 0;
@@ -214,21 +243,67 @@
 
   function loadInitialData() {
     document.getElementById("progressText").innerText = "📦 Loading data...";
-    Papa.parse(csvUrl, {
+    
+    // Clear previous data to ensure fresh load
+    allData = [];
+    
+    Papa.parse(getCsvUrl(), {
       download: true,
       header: true,
+      beforeFirstChunk: function(chunk) {
+        // Log for debugging cache issues
+        console.log("Loading CSV data with cache key:", sessionCacheKey);
+        return chunk;
+      },
       complete: function(results) {
-        allData = results.data.filter(row => row.created_on); // Ensure 'created_on' exists
+        if (results.errors.length > 0) {
+          console.error("CSV parsing errors:", results.errors);
+          showCustomAlert("Error loading data. Please try clearing cache and reloading.");
+          return;
+        }
+        
+        allData = results.data.filter(row => row.created_on && row.created_on.trim() !== '');
+        console.log(`Loaded ${allData.length} records total`);
+        
         populateDateFilters(allData);
         document.getElementById("progressText").innerText = "";
+      },
+      error: function(error) {
+        console.error("Error downloading CSV:", error);
+        showCustomAlert("Error downloading data. Please check your connection and try again.");
+        document.getElementById("progressText").innerText = "❌ Error loading data";
       }
     });
+  }
+
+  function clearCacheAndReload() {
+    // Generate new cache key
+    sessionCacheKey = 'key_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    sessionStorage.setItem('csvCacheKey', sessionCacheKey);
+    
+    // Clear all data
+    allData = [];
+    data = [];
+    currentIndex = 0;
+    
+    // Reset UI
+    document.getElementById("loginScreen").style.display = "block";
+    document.getElementById("imageContainer").style.display = "none";
+    document.getElementById("controlPanel").style.display = "none";
+    document.getElementById("progressText").innerText = "🔄 Clearing cache and reloading...";
+    
+    // Force reload after a short delay
+    setTimeout(() => {
+      loadInitialData();
+    }, 500);
   }
 
   function populateDateFilters(data) {
     const dates = new Set();
     data.forEach(row => {
-      dates.add(row.created_on);
+      if (row.created_on && row.created_on.trim() !== '') {
+        dates.add(row.created_on);
+      }
     });
 
     const sortedDates = Array.from(dates).sort();
@@ -237,8 +312,8 @@
     const endDateSelect = document.getElementById("endDate");
 
     // Clear existing options, but preserve the placeholder
-    startDateSelect.options.length = 1;
-    endDateSelect.options.length = 1;
+    startDateSelect.innerHTML = '<option value="" disabled selected>Start Date</option>';
+    endDateSelect.innerHTML = '<option value="" disabled selected>End Date</option>';
 
     sortedDates.forEach(date => {
       const option1 = document.createElement("option");
@@ -267,45 +342,55 @@
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("progressText").innerText = "📦 Filtering data...";
 
-    data = allData.filter(row => {
-      const createdOnDate = new Date(row.created_on);
-      const startDateTime = startDate ? new Date(startDate) : null;
-      const endDateTime = endDate ? new Date(endDate) : null;
+    // Add a small delay to ensure UI updates
+    setTimeout(() => {
+      data = allData.filter(row => {
+        const createdOnDate = new Date(row.created_on);
+        const startDateTime = startDate ? new Date(startDate) : null;
+        const endDateTime = endDate ? new Date(endDate) : null;
 
-      if (startDateTime && endDateTime && startDateTime > endDateTime) {
-          showCustomAlert("End date cannot be before start date.");
-          document.getElementById("loginScreen").style.display = "block";
+        if (startDateTime && endDateTime && startDateTime > endDateTime) {
+            showCustomAlert("End date cannot be before start date.");
+            document.getElementById("loginScreen").style.display = "block";
+            document.getElementById("progressText").innerText = "";
+            return false;
+        }
+        
+        const isAfterStart = !startDateTime || createdOnDate >= startDateTime;
+        const isBeforeEnd = !endDateTime || createdOnDate <= endDateTime;
+        
+        // Only show data where the 'Status' column is null, empty, or undefined
+        const statusValue = row.Status || row.status || '';
+        const isStatusEmpty = statusValue.toString().trim() === '';
+        
+        return isAfterStart && isBeforeEnd && isStatusEmpty;
+      });
+      
+      console.log(`Filtered to ${data.length} unreviewed images`);
+      
+      currentIndex = 0;
+      if (data.length === 0) {
+        document.getElementById("progressText").innerText = "No unreviewed images found for the selected dates.";
+        document.getElementById("loginScreen").style.display = "block";
+      } else {
+        document.getElementById("imageContainer").style.display = "flex";
+        document.getElementById("controlPanel").style.display = "block";
+        document.getElementById("progressText").innerText = `Found ${data.length} images to review`;
+        setTimeout(() => {
           document.getElementById("progressText").innerText = "";
-          return false;
+        }, 2000);
+        showImage();
+        preloadNextImages();
       }
-      
-      const isAfterStart = !startDateTime || createdOnDate >= startDateTime;
-      const isBeforeEnd = !endDateTime || createdOnDate <= endDateTime;
-      
-      // Only show data where the 'Status' column is null, empty, or undefined
-      const statusValue = row.Status || row.status || ''; // Handle case sensitivity
-      const isStatusEmpty = statusValue.trim() === '';
-      
-      return isAfterStart && isBeforeEnd && isStatusEmpty;
-    });
-    
-    currentIndex = 0;
-    if (data.length === 0) {
-      document.getElementById("progressText").innerText = "No unreviewed images found for the selected dates.";
-    } else {
-      document.getElementById("imageContainer").style.display = "flex";
-      document.getElementById("controlPanel").style.display = "block";
-      document.getElementById("progressText").innerText = "";
-      showImage();
-      preloadNextImages();
-    }
+    }, 100);
   }
 
   function showImage() {
     if (currentIndex >= data.length) {
-      document.getElementById("progressText").innerText = "All images in this set have been reviewed.";
+      document.getElementById("progressText").innerText = "✅ All images in this set have been reviewed!";
       document.getElementById("imageContainer").style.display = "none";
       document.getElementById("controlPanel").style.display = "none";
+      document.getElementById("loginScreen").style.display = "block";
       return;
     }
 
@@ -315,6 +400,10 @@
     document.getElementById("imgId").innerText = row["image_id"];
     document.getElementById("skuId").innerText = row["sku_id"];
     document.getElementById("skuName").innerText = row["sku_name"];
+    
+    // Update progress text
+    document.getElementById("progressText").innerText = `Progress: ${currentIndex + 1} of ${data.length}`;
+    
     preloadNextImages();
   }
 
