@@ -118,6 +118,16 @@
       font-size: 1em;
       border-radius: 8px;
     }
+    .date-range-filter {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin: 15px 0;
+    }
+    .date-range-filter select {
+        flex: 1;
+        max-width: 200px;
+    }
     @media (min-width: 768px) {
       .container {
         flex-direction: row;
@@ -130,7 +140,7 @@
     }
   </style>
 </head>
-<body>
+<body onload="loadInitialData()">
 
 <header>
   <h1>Image QC Review Dashboard</h1>
@@ -145,9 +155,17 @@
     <option value="shweta.gupta@spyne.co.in">shweta.gupta@spyne.co.in</option>
     <option value="sumit.rana@spyne.ai">sumit.rana@spyne.ai</option>
     <option value="kishor@spyne.ai">kishor@spyne.ai</option>
-   
   </select>
   <br><br>
+  <div class="date-range-filter">
+      <select id="startDate">
+        <option value="" disabled selected>Start Date</option>
+      </select>
+      <select id="endDate">
+        <option value="" disabled selected>End Date</option>
+      </select>
+  </div>
+  <br>
   <button onclick="login()">Start Review</button>
 </div>
 
@@ -188,50 +206,104 @@
 <iframe id="hiddenSubmitFrame" name="hiddenSubmitFrame"></iframe>
 
 <script>
-  const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSEu3pra-CWUqYE-PZr2ipjZlc8HnI2fjY9DHoFiyg9EyXTxTVtW-F6kEzvkDHao70oQIs_q18pc_WW/pub?gid=0&single=true&output=csv";
+  const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSEu3pra-CWUqYE-PZr2ipjZlc8HnI2fjY9DHoFiyg9EyXTxTVtW-F6kEzvkDHao70oQIs_q18pc_WW/pub?gid=0&single=true&output=csv&cacheBust=" + new Date().getTime();
+  let allData = [];
   let data = [];
   let currentIndex = 0;
   let userEmail = "";
 
-  function login() {
-    const emailInput = document.getElementById("emailInput");
-    userEmail = emailInput.value.trim();
-    if (!userEmail || !userEmail.includes("@")) {
-      // Use custom alert instead of window.alert()
-      showCustomAlert("Please select a valid email ID.");
-      return;
-    }
-    document.getElementById("loginScreen").style.display = "none";
+  function loadInitialData() {
     document.getElementById("progressText").innerText = "📦 Loading data...";
-    loadCSVData();
-  }
-
-  function loadCSVData() {
     Papa.parse(csvUrl, {
       download: true,
       header: true,
       complete: function(results) {
-        data = results.data.filter(row => {
-          const status = (row.status || '').trim().toLowerCase();
-          return !["done", "cropped", "marketing material", "banner", "vehicle overlapped", "editing"].includes(status);
-        });
-
-        if (data.length === 0) {
-          document.getElementById("progressText").innerText = "✅ All SKUs are already reviewed. No SKU left.";
-        } else {
-          document.getElementById("imageContainer").style.display = "flex";
-          document.getElementById("controlPanel").style.display = "block";
-          document.getElementById("progressText").innerText = "";
-          showImage();
-          preloadNextImages();
-        }
+        allData = results.data.filter(row => row.created_on); // Ensure 'created_on' exists
+        populateDateFilters(allData);
+        document.getElementById("progressText").innerText = "";
       }
     });
   }
 
+  function populateDateFilters(data) {
+    const dates = new Set();
+    data.forEach(row => {
+      dates.add(row.created_on);
+    });
+
+    const sortedDates = Array.from(dates).sort();
+
+    const startDateSelect = document.getElementById("startDate");
+    const endDateSelect = document.getElementById("endDate");
+
+    // Clear existing options, but preserve the placeholder
+    startDateSelect.options.length = 1;
+    endDateSelect.options.length = 1;
+
+    sortedDates.forEach(date => {
+      const option1 = document.createElement("option");
+      option1.value = date;
+      option1.text = date;
+      startDateSelect.appendChild(option1);
+
+      const option2 = document.createElement("option");
+      option2.value = date;
+      option2.text = date;
+      endDateSelect.appendChild(option2);
+    });
+  }
+
+  function login() {
+    const emailInput = document.getElementById("emailInput");
+    userEmail = emailInput.value.trim();
+    const startDate = document.getElementById("startDate").value;
+    const endDate = document.getElementById("endDate").value;
+
+    if (!userEmail || !userEmail.includes("@")) {
+      showCustomAlert("Please select a valid email ID.");
+      return;
+    }
+    
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("progressText").innerText = "📦 Filtering data...";
+
+    data = allData.filter(row => {
+      const createdOnDate = new Date(row.created_on);
+      const startDateTime = startDate ? new Date(startDate) : null;
+      const endDateTime = endDate ? new Date(endDate) : null;
+
+      if (startDateTime && endDateTime && startDateTime > endDateTime) {
+          showCustomAlert("End date cannot be before start date.");
+          document.getElementById("loginScreen").style.display = "block";
+          document.getElementById("progressText").innerText = "";
+          return false;
+      }
+      
+      const isAfterStart = !startDateTime || createdOnDate >= startDateTime;
+      const isBeforeEnd = !endDateTime || createdOnDate <= endDateTime;
+      
+      // Only show data where the 'Status' column is null, empty, or undefined
+      const statusValue = row.Status || row.status || ''; // Handle case sensitivity
+      const isStatusEmpty = statusValue.trim() === '';
+      
+      return isAfterStart && isBeforeEnd && isStatusEmpty;
+    });
+    
+    currentIndex = 0;
+    if (data.length === 0) {
+      document.getElementById("progressText").innerText = "No unreviewed images found for the selected dates.";
+    } else {
+      document.getElementById("imageContainer").style.display = "flex";
+      document.getElementById("controlPanel").style.display = "block";
+      document.getElementById("progressText").innerText = "";
+      showImage();
+      preloadNextImages();
+    }
+  }
+
   function showImage() {
     if (currentIndex >= data.length) {
-      document.getElementById("progressText").innerText = `🎉 You reviewed ${data.length} SKUs!`;
+      document.getElementById("progressText").innerText = "All images in this set have been reviewed.";
       document.getElementById("imageContainer").style.display = "none";
       document.getElementById("controlPanel").style.display = "none";
       return;
@@ -299,7 +371,6 @@
     }
   }
 
-  // Custom alert/modal function
   function showCustomAlert(message) {
     const alertModal = document.createElement('div');
     alertModal.style.position = 'fixed';
