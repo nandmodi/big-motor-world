@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QC Review Dashboard</title>
   <link rel="icon" href="https://spyne-prod-ai.s3.us-east-1.amazonaws.com/ai-dataset/2025/logo/unnamed.png" type="image/x-icon" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -26,14 +27,16 @@
     }
     .container {
       display: none;
-      justify-content: space-between;
-      align-items: flex-start;
-      padding: 1px;
-      gap: 1px;
+      flex-direction: column; /* Changed to column for better mobile layout */
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+      gap: 1rem;
     }
     .image-box {
       flex: 1;
       text-align: center;
+      width: 100%;
     }
     .image-box img {
       width: 100%;
@@ -41,32 +44,46 @@
       max-height: 600px;
       object-fit: contain;
       margin-bottom: 5px;
+      border-radius: 8px; /* Added rounded corners */
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
     .meta {
       font-size: 0.95em;
       color: #666;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
     }
     .controls {
       display: none;
       margin: 30px auto;
       text-align: center;
+      padding: 0 1rem;
     }
     .status-group {
       display: flex;
       justify-content: center;
-      gap: 20px;
+      gap: 10px;
       margin-bottom: 20px;
       flex-wrap: wrap;
     }
     .status-group label {
       font-size: 1rem;
       background: #e9f0f7;
-      padding: 10px 20px;
-      border-radius: 6px;
+      padding: 10px 15px;
+      border-radius: 20px;
       cursor: pointer;
+      border: 1px solid transparent;
+      transition: background 0.3s, border-color 0.3s;
     }
     .status-group input[type="radio"] {
-      margin-right: 8px;
+      display: none;
+    }
+    .status-group input[type="radio"]:checked + label {
+      background: #0073e6;
+      color: white;
+      border-color: #0057a3;
     }
     button {
       padding: 12px 25px;
@@ -74,8 +91,13 @@
       background-color: #0073e6;
       color: white;
       border: none;
-      border-radius: 6px;
+      border-radius: 20px;
       cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+    button:hover {
+      background-color: #0057a3;
+      transform: translateY(-2px);
     }
     .progress {
       text-align: center;
@@ -90,9 +112,21 @@
       text-align: center;
       margin-top: 50px;
     }
-    #loginScreen select {
-      padding: 10px;
+    #loginScreen select,
+    #loginScreen button {
+      padding: 12px;
       font-size: 1em;
+      border-radius: 8px;
+    }
+    @media (min-width: 768px) {
+      .container {
+        flex-direction: row;
+        gap: 20px;
+      }
+      .controls {
+        width: 80%;
+        max-width: 800px;
+      }
     }
   </style>
 </head>
@@ -108,26 +142,10 @@
   <h2>Login to Start QC Review</h2>
   <select id="emailInput">
     <option value="" disabled selected>Select your email ID</option>
-    <option value="samir.ansari@spyne.co.in">samir.ansari@spyne.co.in</option>
-    <option value="ajay.prajapati@spyne.co.in">ajay.prajapati@spyne.co.in</option>
-    <option value="sneha.swami@spyne.co.in">sneha.swami@spyne.co.in</option>
-    <option value="rahul.kumar1@spyne.co.in">rahul.kumar1@spyne.co.in</option>
-    <option value="dinesh.mishra@spyne.co.in">dinesh.mishra@spyne.co.in</option>
-    <option value="chhotu.singh@spyne.co.in">chhotu.singh@spyne.co.in</option>
-    <option value="bashishth.singh@spyne.co.in">bashishth.singh@spyne.co.in</option>
-    <option value="kartik.kumar@spyne.co.in">kartik.kumar@spyne.co.in</option>
-    <option value="dharmendra.kumar@spyne.co.in">dharmendra.kumar@spyne.co.in</option>
-    <option value="rambha.prajapati@spyne.co.in">rambha.prajapati@spyne.co.in</option>
-    <option value="raushan.kumar1@spyne.co.in">raushan.kumar1@spyne.co.in</option>
-    <option value="pradeep.singh@spyne.co.in">pradeep.singh@spyne.co.in</option>
-    <option value="kavi.singh@spyne.co.in">kavi.singh@spyne.co.in</option>
-    <option value="vikas.gupta@spyne.co.in">vikas.gupta@spyne.co.in</option>
-    <option value="rahul.ranjan@spyne.co.in">rahul.ranjan@spyne.co.in</option>
-    <option value="ankesh.raj@spyne.co.in">ankesh.raj@spyne.co.in</option>
-    <option value="mukesh.kholi@spyne.co.in">mukesh.kholi@spyne.co.in</option>
-    <option value="manoj.punn@spyne.co.in">manoj.punn@spyne.co.in</option>
-    <option value="bharat.bhushan@spyne.co.in">bharat.bhushan@spyne.co.in</option>
-    <option value="ajit.yadav@spyne.co.in">ajit.yadav@spyne.co.in</option>
+    <option value="shweta.gupta@spyne.co.in">shweta.gupta@spyne.co.in</option>
+    <option value="sumit.rana@spyne.ai">sumit.rana@spyne.ai</option>
+    <option value="kishor@spyne.ai">kishor@spyne.ai</option>
+   
   </select>
   <br><br>
   <button onclick="login()">Start Review</button>
@@ -137,22 +155,32 @@
   <div class="image-box">
     <h3>Input Image</h3>
     <img id="inputImg" loading="lazy" alt="Input Image">
-    <div class="meta">Image ID: <span id="imgId">-</span></div>
+    <div class="meta">
+      <span>Image ID: <span id="imgId">-</span></span>
+      <span>SKU Name: <span id="skuName">-</span></span>
+    </div>
   </div>
   <div class="image-box">
     <h3>Output Image</h3>
     <img id="outputImg" loading="lazy" alt="Output Image">
-    <div class="meta">SKU ID: <span id="skuId">-</span></div>
+    <div class="meta">
+      <span>SKU ID: <span id="skuId">-</span></span>
+    </div>
   </div>
 </div>
 
 <div class="controls" id="controlPanel">
   <div class="status-group">
-    <label><input type="radio" name="status" value="Side_Mirror">1 - Side_mirror</label>
-    <label><input type="radio" name="status" value="Headlight">2 - Headlight</label>
-    <label><input type="radio" name="status" value="Door-Handle">3 - Door-Handle</label>
-    <label><input type="radio" name="status" value="Tyre">4 - Tyre</label>
-    <label><input type="radio" name="status" value="Other">5 - Other</label>
+    <input type="radio" id="bgRemoval" name="status" value="BG Removal">
+    <label for="bgRemoval">1 - BG Removal</label>
+    <input type="radio" id="bgIssue" name="status" value="BG Issue">
+    <label for="bgIssue">2 - BG Issue</label>
+    <input type="radio" id="seeThrough" name="status" value="See through">
+    <label for="seeThrough">3 - See through</label>
+    <input type="radio" id="shadow" name="status" value="Shadow">
+    <label for="shadow">4 - Shadow</label>
+    <input type="radio" id="logo" name="status" value="Logo">
+    <label for="logo">5 - Logo</label>
   </div>
   <button onclick="submitForm()">Next</button>
 </div>
@@ -160,8 +188,7 @@
 <iframe id="hiddenSubmitFrame" name="hiddenSubmitFrame"></iframe>
 
 <script>
-  const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSEu3pra-CWUqYE-PZr2ipjZlc8HnI2fjY9DHoFiyg9EyXTxTVtW-F6kEzvkDHao70oQIs_q18pc_WW/pub?gid=0&single=true&output=csv"; // ✅ updated
-
+  const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSEu3pra-CWUqYE-PZr2ipjZlc8HnI2fjY9DHoFiyg9EyXTxTVtW-F6kEzvkDHao70oQIs_q18pc_WW/pub?gid=0&single=true&output=csv";
   let data = [];
   let currentIndex = 0;
   let userEmail = "";
@@ -170,7 +197,8 @@
     const emailInput = document.getElementById("emailInput");
     userEmail = emailInput.value.trim();
     if (!userEmail || !userEmail.includes("@")) {
-      alert("Please select a valid email ID.");
+      // Use custom alert instead of window.alert()
+      showCustomAlert("Please select a valid email ID.");
       return;
     }
     document.getElementById("loginScreen").style.display = "none";
@@ -214,27 +242,32 @@
     document.getElementById("outputImg").src = row["output_image_hres_url"];
     document.getElementById("imgId").innerText = row["image_id"];
     document.getElementById("skuId").innerText = row["sku_id"];
+    document.getElementById("skuName").innerText = row["sku_name"];
     preloadNextImages();
   }
 
   function submitForm() {
     if (!userEmail || !userEmail.includes("@")) {
-      alert("Login required. Please refresh and log in.");
+      showCustomAlert("Login required. Please refresh and log in.");
       return;
     }
 
-    const status = document.querySelector('input[name="status"]:checked');
-    if (!status) return alert("Please select a status.");
+    let status = document.querySelector('input[name="status"]:checked');
+    // If no status is selected, default to "Done"
+    if (!status) {
+      status = { value: "Done" };
+    }
 
     const row = data[currentIndex];
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = 'https://docs.google.com/forms/d/e/1FAIpQLSdlr7DrJdpzz93xd4unoEULukHMvkTNl0CZlt-Jephem-6r6A/formResponse'; // ✅ updated
+    form.action = 'https://docs.google.com/forms/d/e/1FAIpQLSdlr7DrJdpzz93xd4unoEULukHMvkTNl0CZlt-Jephem-6r6A/formResponse';
     form.target = 'hiddenSubmitFrame';
 
     const fields = [
       { name: 'entry.331138758', value: row["image_id"] },
       { name: 'entry.921407097', value: row["sku_id"] },
+      { name: 'entry.105594411', value: row["sku_name"] },
       { name: 'entry.2036611691', value: status.value },
       { name: 'entry.1651774948', value: userEmail }
     ];
@@ -266,20 +299,40 @@
     }
   }
 
+  // Custom alert/modal function
+  function showCustomAlert(message) {
+    const alertModal = document.createElement('div');
+    alertModal.style.position = 'fixed';
+    alertModal.style.top = '50%';
+    alertModal.style.left = '50%';
+    alertModal.style.transform = 'translate(-50%, -50%)';
+    alertModal.style.backgroundColor = '#fff';
+    alertModal.style.padding = '20px';
+    alertModal.style.borderRadius = '8px';
+    alertModal.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+    alertModal.style.zIndex = '1000';
+    alertModal.style.textAlign = 'center';
+    alertModal.innerHTML = `
+      <p>${message}</p>
+      <button onclick="this.parentNode.remove()" style="margin-top: 10px; padding: 8px 16px; border-radius: 6px; background-color: #0073e6; color: white; border: none; cursor: pointer;">OK</button>
+    `;
+    document.body.appendChild(alertModal);
+  }
+
   document.addEventListener("keydown", function(event) {
     const key = event.key.toLowerCase();
     const code = event.code;
 
-    if (key === "1" || key === "s" || code === "Numpad1") {
-      document.querySelector('input[value="Side_Mirror"]').checked = true;
-    } else if (key === "2" || key === "h" || code === "Numpad2") {
-      document.querySelector('input[value="Headlight"]').checked = true;
-    } else if (key === "3" || key === "d" || code === "Numpad3") {
-      document.querySelector('input[value="Door-Handle"]').checked = true;
-    } else if (key === "4" || key === "t" || code === "Numpad4") {
-      document.querySelector('input[value="Tyre"]').checked = true;
-    } else if (key === "5" || key === "o" || code === "Numpad5") {
-      document.querySelector('input[value="Other"]').checked = true;
+    if (key === "1" || code === "Numpad1") {
+      document.getElementById('bgRemoval').checked = true;
+    } else if (key === "2" || code === "Numpad2") {
+      document.getElementById('bgIssue').checked = true;
+    } else if (key === "3" || code === "Numpad3") {
+      document.getElementById('seeThrough').checked = true;
+    } else if (key === "4" || code === "Numpad4") {
+      document.getElementById('shadow').checked = true;
+    } else if (key === "5" || code === "Numpad5") {
+      document.getElementById('logo').checked = true;
     } else if (key === "enter") {
       event.preventDefault();
       submitForm();
@@ -289,4 +342,3 @@
 
 </body>
 </html>
-
