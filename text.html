@@ -7,10 +7,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-        }
         .image-container {
             transition: transform 0.2s;
         }
@@ -21,8 +17,8 @@
             position: absolute;
             top: 8px;
             right: 8px;
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             cursor: pointer;
             accent-color: #2563eb;
             z-index: 20;
@@ -39,14 +35,30 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .custom-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        
+        /* Fixed height for the grid to show approx 2 rows (6 images) at a time */
+        .grid-viewport {
+            height: calc(100vh - 180px); /* Adjust based on header/footer height */
+            min-height: 500px;
+        }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-50 min-h-screen font-sans overflow-hidden">
 
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
         <div class="loader mb-4"></div>
-        <p class="text-gray-600 font-medium">Fetching Source Data...</p>
+        <p class="text-gray-600 font-medium">Loading Data Source...</p>
     </div>
 
     <!-- Login Page -->
@@ -54,7 +66,7 @@
         <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
             <div class="text-center mb-8">
                 <h1 class="text-3xl font-extrabold text-gray-900 mb-2">Login</h1>
-                <p class="text-gray-500">Select your name and category to continue</p>
+                <p class="text-gray-500">Select Name & Category</p>
             </div>
             
             <div class="space-y-6">
@@ -74,7 +86,7 @@
                 </div>
 
                 <button onclick="handleLogin()" id="login-btn" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-all shadow-lg active:scale-95">
-                    Enter Portal
+                    Start Selection
                 </button>
             </div>
         </div>
@@ -82,57 +94,90 @@
 
     <!-- Main Dashboard -->
     <div id="main-page" class="hidden h-screen flex flex-col">
-        <header class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
-            <div>
-                <h2 class="text-lg font-bold text-gray-800" id="header-user">Welcome</h2>
-                <p class="text-xs text-blue-600 font-semibold uppercase tracking-wider" id="header-cat"></p>
-            </div>
-            <div class="flex items-center gap-4">
-                <div class="text-right hidden sm:block">
-                    <span id="selection-count" class="text-sm font-medium text-gray-600">0 Items Selected</span>
+        <header class="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center shadow-sm z-10">
+            <div class="flex items-center gap-6">
+                <div>
+                    <h2 class="text-sm font-bold text-gray-500 uppercase tracking-tighter" id="header-user">User</h2>
+                    <p class="text-lg font-extrabold text-blue-600 leading-none" id="header-sku-display">SKU: ---</p>
                 </div>
-                <button onclick="submitToForm()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-full font-bold transition shadow-md flex items-center gap-2">
+                
+                <!-- Navigation Controls -->
+                <div class="flex items-center bg-gray-100 rounded-lg p-1 gap-1">
+                    <button onclick="prevSku()" class="p-2 hover:bg-white rounded-md transition text-gray-600 disabled:opacity-30" id="prev-btn">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <span class="px-3 text-xs font-bold text-gray-500 min-w-[80px] text-center" id="sku-counter">0 / 0</span>
+                    <button onclick="nextSku()" class="p-2 hover:bg-white rounded-md transition text-gray-600 disabled:opacity-30" id="next-btn">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <span id="selection-count" class="text-xs font-bold bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">0 Selected</span>
+                <button onclick="submitToForm()" id="submit-btn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold transition shadow-md">
                     Submit Selection
                 </button>
             </div>
         </header>
 
-        <main class="flex-1 flex overflow-hidden">
+        <main class="flex-1 flex">
             <!-- Left Side: NEW -->
             <section class="w-1/2 flex flex-col border-r border-gray-200 bg-white">
-                <div class="bg-blue-50 p-3 border-b border-blue-100 flex justify-between items-center">
-                    <h3 class="font-bold text-blue-800 uppercase text-sm tracking-widest">NEW MODELS</h3>
-                    <span class="bg-blue-200 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold">LEFT SIDE</span>
+                <div class="bg-blue-50 px-4 py-2 border-b border-blue-100 flex justify-between items-center shrink-0">
+                    <h3 class="font-bold text-blue-800 text-xs tracking-widest uppercase">NEW (LEFT)</h3>
+                    <span id="new-count-badge" class="text-[10px] font-bold text-blue-600 uppercase">Total: 0</span>
                 </div>
-                <div id="new-grid" class="flex-1 overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 content-start">
+                <!-- Controlled height grid for "6 visible" effect -->
+                <div id="new-grid" class="flex-1 overflow-y-auto custom-scroll p-4 grid grid-cols-2 lg:grid-cols-3 gap-6 content-start grid-viewport">
                     <!-- Cards injected here -->
                 </div>
             </section>
 
             <!-- Right Side: PROD -->
             <section class="w-1/2 flex flex-col bg-gray-50">
-                <div class="bg-emerald-50 p-3 border-b border-emerald-100 flex justify-between items-center">
-                    <h3 class="font-bold text-emerald-800 uppercase text-sm tracking-widest">PROD MODELS</h3>
-                    <span class="bg-emerald-200 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">RIGHT SIDE</span>
+                <div class="bg-emerald-50 px-4 py-2 border-b border-emerald-100 flex justify-between items-center shrink-0">
+                    <h3 class="font-bold text-emerald-800 text-xs tracking-widest uppercase">PROD (RIGHT)</h3>
+                    <span id="prod-count-badge" class="text-[10px] font-bold text-emerald-600 uppercase">Total: 0</span>
                 </div>
-                <div id="prod-grid" class="flex-1 overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 content-start">
+                <div id="prod-grid" class="flex-1 overflow-y-auto custom-scroll p-4 grid grid-cols-2 lg:grid-cols-3 gap-6 content-start grid-viewport">
                     <!-- Cards injected here -->
                 </div>
             </section>
         </main>
     </div>
 
+    <!-- Done Modal -->
+    <div id="done-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-[100] backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-2xl text-center shadow-2xl max-w-sm mx-4 transform transition-all">
+            <div class="text-green-500 mb-4">
+                <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-2">Done Status</h3>
+            <p class="text-gray-600 mb-6" id="modal-message">Submitted successfully.</p>
+            <button onclick="closeModal()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all">
+                Continue
+            </button>
+        </div>
+    </div>
+
     <script>
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRRGCcDlcoYzbElD-e7ZOuwqQm-vfTOUff10tO9jgb4kZXng7CaWTev0-k2srzI4NBvsFhk2FytkHpb/pub?gid=0&single=true&output=csv';
-        const FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSeraoBf6s2nHnlflVGtzMWpHv2j1wpF4p3FfgQ-t_8yneOdjg/viewform?usp=pp_url";
+        const FORM_SUBMIT_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeraoBf6s2nHnlflVGtzMWpHv2j1wpF4p3FfgQ-t_8yneOdjg/formResponse";
 
         let fullDataset = [];
+        let uniqueSkus = [];
+        let currentSkuIndex = 0;
         let currentUser = "";
         let currentCategory = "";
+        let selections = {}; 
 
-        // Initialize App
+        let isSyncingLeft = false;
+        let isSyncingRight = false;
+
         window.addEventListener('DOMContentLoaded', () => {
             fetchCSV();
+            setupSyncScroll();
         });
 
         async function fetchCSV() {
@@ -144,80 +189,97 @@
                     populateCategories();
                     document.getElementById('loading-overlay').style.display = 'none';
                 },
-                error: (err) => {
-                    alert("Error accessing the source sheet. Please ensure it is published as CSV.");
-                }
+                error: () => alert("CSV Load Error.")
             });
+        }
+
+        function setupSyncScroll() {
+            const leftGrid = document.getElementById('new-grid');
+            const rightGrid = document.getElementById('prod-grid');
+
+            leftGrid.onscroll = () => {
+                if (!isSyncingLeft) {
+                    isSyncingRight = true;
+                    rightGrid.scrollTop = leftGrid.scrollTop;
+                }
+                isSyncingLeft = false;
+            };
+
+            rightGrid.onscroll = () => {
+                if (!isSyncingRight) {
+                    isSyncingLeft = true;
+                    leftGrid.scrollTop = rightGrid.scrollTop;
+                }
+                isSyncingRight = false;
+            };
         }
 
         function populateCategories() {
             const select = document.getElementById('category-list');
             const categories = [...new Set(fullDataset.map(item => item.Category))].filter(Boolean).sort();
-            
-            if (categories.length > 0) {
-                select.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
-            } else {
-                select.innerHTML = `<option value="">No categories found</option>`;
-            }
+            select.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
         }
 
         function handleLogin() {
             currentUser = document.getElementById('user-name').value;
             currentCategory = document.getElementById('category-list').value;
+            if (!currentCategory) return alert("Select Category");
 
-            if (!currentCategory) {
-                alert("Please select a category");
-                return;
-            }
+            uniqueSkus = [...new Set(fullDataset
+                .filter(item => item.Category === currentCategory)
+                .map(item => item.Sku_id))];
 
-            document.getElementById('header-user').innerText = `User: ${currentUser}`;
-            document.getElementById('header-cat').innerText = `Category: ${currentCategory}`;
-            
+            if (uniqueSkus.length === 0) return alert("No SKUs found for this category");
+
+            currentSkuIndex = 0;
+            document.getElementById('header-user').innerText = `${currentUser} | ${currentCategory}`;
             document.getElementById('login-page').classList.add('hidden');
             document.getElementById('main-page').classList.remove('hidden');
-
-            renderGrids();
+            renderCurrentSku();
         }
 
-        function renderGrids() {
-            const filtered = fullDataset.filter(item => item.Category === currentCategory);
+        function renderCurrentSku() {
+            const skuId = uniqueSkus[currentSkuIndex];
+            document.getElementById('header-sku-display').innerText = `SKU: ${skuId}`;
+            document.getElementById('sku-counter').innerText = `${currentSkuIndex + 1} / ${uniqueSkus.length}`;
             
-            const newData = filtered.filter(i => i.Model.toLowerCase().includes('new')).slice(0, 6);
-            const prodData = filtered.filter(i => i.Model.toLowerCase().includes('prod')).slice(0, 6);
+            document.getElementById('prev-btn').disabled = currentSkuIndex === 0;
+            document.getElementById('next-btn').disabled = currentSkuIndex === uniqueSkus.length - 1;
 
-            const newGrid = document.getElementById('new-grid');
-            const prodGrid = document.getElementById('prod-grid');
+            const skuData = fullDataset.filter(i => i.Sku_id === skuId);
+            const newData = skuData.filter(i => i.Model.toLowerCase().includes('new'));
+            const prodData = skuData.filter(i => i.Model.toLowerCase().includes('prod'));
 
-            newGrid.innerHTML = newData.map(item => createCard(item)).join('');
-            prodGrid.innerHTML = prodData.map(item => createCard(item)).join('');
+            document.getElementById('new-count-badge').innerText = `Total: ${newData.length}`;
+            document.getElementById('prod-count-badge').innerText = `Total: ${prodData.length}`;
 
-            if (newData.length === 0) newGrid.innerHTML = '<p class="text-gray-400 col-span-full py-10 text-center">No "New" models found</p>';
-            if (prodData.length === 0) prodGrid.innerHTML = '<p class="text-gray-400 col-span-full py-10 text-center">No "Prod" models found</p>';
+            document.getElementById('new-grid').innerHTML = newData.map(item => createCard(item)).join('');
+            document.getElementById('prod-grid').innerHTML = prodData.map(item => createCard(item)).join('');
 
             document.querySelectorAll('.sku-check').forEach(box => {
-                box.addEventListener('change', updateCount);
+                if (selections[box.dataset.uniqueid]) box.checked = true;
+                box.addEventListener('change', toggleSelection);
             });
+            updateGlobalCount();
         }
 
         function createCard(item) {
-            const fallbackImg = "https://via.placeholder.com/300x300?text=Image+Not+Found";
-            
+            const uniqueId = `${item.Sku_id}_${item.Model}_${item['File name']}`;
             return `
                 <div class="relative bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm image-container group">
-                    <div class="aspect-square bg-white flex items-center justify-center p-2">
+                    <div class="aspect-square flex items-center justify-center p-3 bg-white">
                         <img src="${item.url}" 
-                             onerror="this.src='${fallbackImg}'" 
-                             class="max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105"
-                             alt="${item.Sku_id}">
+                             onerror="this.src='https://via.placeholder.com/200?text=No+Img'" 
+                             class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform"
+                             alt="SKU Image"
+                             loading="lazy">
                     </div>
-                    <div class="p-3 border-t border-gray-50 bg-white">
-                        <div class="flex justify-between items-start">
-                            <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded uppercase tracking-tight">${item.Sku_id}</span>
-                        </div>
-                        <p class="text-[11px] font-semibold text-gray-700 mt-1 truncate" title="${item['File name']}">${item['File name']}</p>
-                        <p class="text-[10px] text-gray-400 italic">${item.Model}</p>
+                    <div class="p-3 border-t border-gray-50 bg-gray-50/50">
+                        <p class="text-[10px] font-bold text-gray-800 truncate" title="${item['File name']}">${item['File name']}</p>
+                        <p class="text-[9px] text-gray-400 uppercase font-bold mt-0.5 tracking-tight">${item.Model}</p>
                     </div>
                     <input type="checkbox" class="checkbox-overlay sku-check" 
+                           data-uniqueid="${uniqueId}"
                            data-sku="${item.Sku_id}" 
                            data-model="${item.Model}"
                            data-file="${item['File name']}">
@@ -225,29 +287,72 @@
             `;
         }
 
-        function updateCount() {
-            const count = document.querySelectorAll('.sku-check:checked').length;
-            document.getElementById('selection-count').innerText = `${count} Items Selected`;
+        function toggleSelection(e) {
+            const id = e.target.dataset.uniqueid;
+            if (e.target.checked) selections[id] = e.target.dataset;
+            else delete selections[id];
+            updateGlobalCount();
         }
 
-        function submitToForm() {
-            const selected = Array.from(document.querySelectorAll('.sku-check:checked'));
-            
-            if (selected.length === 0) {
-                alert("Please select at least one item.");
-                return;
+        function updateGlobalCount() {
+            const count = Object.keys(selections).length;
+            document.getElementById('selection-count').innerText = `${count} Selected`;
+        }
+
+        function nextSku() {
+            if (currentSkuIndex < uniqueSkus.length - 1) {
+                currentSkuIndex++;
+                renderCurrentSku();
+                document.getElementById('new-grid').scrollTop = 0;
+                document.getElementById('prod-grid').scrollTop = 0;
             }
+        }
 
-            const item = selected[0].dataset;
-            
-            const prefillUrl = `${FORM_BASE}` +
-                `&entry.106248745=${encodeURIComponent(currentUser)}` +
-                `&entry.675861556=${encodeURIComponent(item.sku)}` +
-                `&entry.1292743855=${encodeURIComponent(item.model)}` +
-                `&entry.341097138=${encodeURIComponent(currentCategory)}` +
-                `&entry.94706720=${encodeURIComponent(item.file)}`;
+        function prevSku() {
+            if (currentSkuIndex > 0) {
+                currentSkuIndex--;
+                renderCurrentSku();
+                document.getElementById('new-grid').scrollTop = 0;
+                document.getElementById('prod-grid').scrollTop = 0;
+            }
+        }
 
-            window.open(prefillUrl, '_blank');
+        async function submitToForm() {
+            const selectedItems = Object.values(selections);
+            if (selectedItems.length === 0) return alert("Select images first");
+
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.innerText = "Submitting...";
+
+            const promises = selectedItems.map(item => {
+                const formData = new URLSearchParams();
+                formData.append('entry.106248745', currentUser);
+                formData.append('entry.675861556', item.sku);
+                formData.append('entry.1292743855', item.model);
+                formData.append('entry.341097138', currentCategory);
+                formData.append('entry.94706720', item.file);
+
+                return fetch(FORM_SUBMIT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: formData.toString()
+                });
+            });
+
+            await Promise.all(promises);
+            document.getElementById('modal-message').innerText = `Done! Submitted ${selectedItems.length} entries.`;
+            document.getElementById('done-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('done-modal').classList.add('hidden');
+            selections = {};
+            updateGlobalCount();
+            renderCurrentSku();
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = false;
+            btn.innerText = "Submit Selection";
         }
     </script>
 </body>
