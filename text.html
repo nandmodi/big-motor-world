@@ -7,140 +7,185 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .image-container {
-            transition: transform 0.2s;
+        /* Card Styling to prevent overlapping */
+        .sku-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            height: 220px; /* Fixed height to ensure 2 rows fit well */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        .image-container:hover {
-            transform: translateY(-4px);
+
+        .sku-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
         }
+
+        .image-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            background: white;
+            min-height: 0; /* Allow image to shrink */
+        }
+
+        .sku-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
         .checkbox-overlay {
             position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 22px;
-            height: 22px;
+            top: 10px;
+            right: 10px;
+            width: 24px;
+            height: 24px;
             cursor: pointer;
             accent-color: #2563eb;
-            z-index: 20;
+            z-index: 40;
+            border: 2px solid white;
+            border-radius: 4px;
         }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 2s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+
+        /* Custom Scrollbar */
         .custom-scroll::-webkit-scrollbar {
-            width: 5px;
+            width: 6px;
         }
         .custom-scroll::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: #f8fafc;
         }
         .custom-scroll::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 10px;
         }
-        
-        /* Fixed height for the grid to show approx 2 rows (6 images) at a time */
+
+        /* Grid Viewport - Calculated to show roughly 2 rows (6 images) */
         .grid-viewport {
-            height: calc(100vh - 180px); /* Adjust based on header/footer height */
-            min-height: 500px;
+            height: 100%;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            padding: 16px;
+            align-content: start;
         }
+
+        /* Responsive grid */
+        @media (max-width: 1280px) {
+            .grid-viewport {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .sku-card { height: 200px; }
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen font-sans overflow-hidden">
+<body class="bg-slate-100 h-screen font-sans overflow-hidden">
 
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
         <div class="loader mb-4"></div>
-        <p class="text-gray-600 font-medium">Loading Data Source...</p>
+        <p class="text-slate-600 font-bold">Initializing Portal...</p>
     </div>
 
     <!-- Login Page -->
     <div id="login-page" class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
+        <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md border border-slate-100">
             <div class="text-center mb-8">
-                <h1 class="text-3xl font-extrabold text-gray-900 mb-2">Login</h1>
-                <p class="text-gray-500">Select Name & Category</p>
+                <div class="inline-flex items-center justify-center w-20 h-20 bg-blue-600 rounded-3xl text-white mb-6 shadow-xl">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                </div>
+                <h1 class="text-3xl font-black text-slate-900 mb-2">Portal Access</h1>
+                <p class="text-slate-500 font-medium">Verification Required</p>
             </div>
             
             <div class="space-y-6">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">User Name</label>
-                    <select id="user-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="block text-xs font-black text-slate-500 mb-2 uppercase tracking-widest">Select Name</label>
+                    <select id="user-name" class="w-full p-4 border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none bg-slate-50 font-bold transition-all appearance-none cursor-pointer">
                         <option value="Rajmani">Rajmani</option>
                         <option value="Mohit">Mohit</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Category</label>
-                    <select id="category-list" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value="">Loading categories...</option>
+                    <label class="block text-xs font-black text-slate-500 mb-2 uppercase tracking-widest">Category</label>
+                    <select id="category-list" class="w-full p-4 border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none bg-slate-50 font-bold transition-all appearance-none cursor-pointer">
+                        <option value="">Fetching Categories...</option>
                     </select>
                 </div>
 
-                <button onclick="handleLogin()" id="login-btn" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-all shadow-lg active:scale-95">
-                    Start Selection
+                <button onclick="handleLogin()" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg active:scale-95 uppercase tracking-widest">
+                    Enter Dashboard
                 </button>
             </div>
         </div>
     </div>
 
     <!-- Main Dashboard -->
-    <div id="main-page" class="hidden h-screen flex flex-col">
-        <header class="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center shadow-sm z-10">
-            <div class="flex items-center gap-6">
+    <div id="main-page" class="hidden h-screen flex flex-col bg-white">
+        <header class="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center shrink-0 z-40">
+            <div class="flex items-center gap-10">
                 <div>
-                    <h2 class="text-sm font-bold text-gray-500 uppercase tracking-tighter" id="header-user">User</h2>
-                    <p class="text-lg font-extrabold text-blue-600 leading-none" id="header-sku-display">SKU: ---</p>
+                    <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest" id="header-user">---</h2>
+                    <p class="text-xl font-black text-blue-600" id="header-sku-display">SKU: ---</p>
                 </div>
                 
-                <!-- Navigation Controls -->
-                <div class="flex items-center bg-gray-100 rounded-lg p-1 gap-1">
-                    <button onclick="prevSku()" class="p-2 hover:bg-white rounded-md transition text-gray-600 disabled:opacity-30" id="prev-btn">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                <div class="flex items-center bg-slate-100 rounded-2xl p-1 shadow-inner">
+                    <button onclick="prevSku()" class="p-2.5 hover:bg-white hover:shadow-md rounded-xl transition-all text-slate-600 disabled:opacity-20" id="prev-btn">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
                     </button>
-                    <span class="px-3 text-xs font-bold text-gray-500 min-w-[80px] text-center" id="sku-counter">0 / 0</span>
-                    <button onclick="nextSku()" class="p-2 hover:bg-white rounded-md transition text-gray-600 disabled:opacity-30" id="next-btn">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    <span class="px-6 text-sm font-black text-slate-600 min-w-[120px] text-center" id="sku-counter">0 / 0</span>
+                    <button onclick="nextSku()" class="p-2.5 hover:bg-white hover:shadow-md rounded-xl transition-all text-slate-600 disabled:opacity-20" id="next-btn">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                     </button>
                 </div>
             </div>
 
-            <div class="flex items-center gap-4">
-                <span id="selection-count" class="text-xs font-bold bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">0 Selected</span>
-                <button onclick="submitToForm()" id="submit-btn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold transition shadow-md">
+            <div class="flex items-center gap-6">
+                <span id="selection-count" class="text-sm font-black bg-blue-50 text-blue-700 px-5 py-2.5 rounded-2xl border-2 border-blue-100">0 Selected</span>
+                <button onclick="submitToForm()" id="submit-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-2xl font-black transition-all shadow-lg active:scale-95 uppercase tracking-tight">
                     Submit Selection
                 </button>
             </div>
         </header>
 
-        <main class="flex-1 flex">
+        <main class="flex-1 flex min-h-0 overflow-hidden">
             <!-- Left Side: NEW -->
-            <section class="w-1/2 flex flex-col border-r border-gray-200 bg-white">
-                <div class="bg-blue-50 px-4 py-2 border-b border-blue-100 flex justify-between items-center shrink-0">
-                    <h3 class="font-bold text-blue-800 text-xs tracking-widest uppercase">NEW (LEFT)</h3>
-                    <span id="new-count-badge" class="text-[10px] font-bold text-blue-600 uppercase">Total: 0</span>
+            <section class="w-1/2 flex flex-col border-r border-slate-200 min-h-0">
+                <div class="bg-blue-600 px-6 py-3 flex justify-between items-center shadow-lg z-10 shrink-0">
+                    <h3 class="font-black text-white text-xs tracking-widest uppercase">NEW (LEFT)</h3>
+                    <span id="new-count-badge" class="text-[10px] font-black bg-blue-800 text-blue-100 px-3 py-1 rounded-full uppercase">0 Items</span>
                 </div>
-                <!-- Controlled height grid for "6 visible" effect -->
-                <div id="new-grid" class="flex-1 overflow-y-auto custom-scroll p-4 grid grid-cols-2 lg:grid-cols-3 gap-6 content-start grid-viewport">
+                <div id="new-grid" class="flex-1 custom-scroll grid-viewport">
                     <!-- Cards injected here -->
                 </div>
             </section>
 
             <!-- Right Side: PROD -->
-            <section class="w-1/2 flex flex-col bg-gray-50">
-                <div class="bg-emerald-50 px-4 py-2 border-b border-emerald-100 flex justify-between items-center shrink-0">
-                    <h3 class="font-bold text-emerald-800 text-xs tracking-widest uppercase">PROD (RIGHT)</h3>
-                    <span id="prod-count-badge" class="text-[10px] font-bold text-emerald-600 uppercase">Total: 0</span>
+            <section class="w-1/2 flex flex-col bg-slate-50 min-h-0">
+                <div class="bg-slate-800 px-6 py-3 flex justify-between items-center shadow-lg z-10 shrink-0">
+                    <h3 class="font-black text-white text-xs tracking-widest uppercase">PROD (RIGHT)</h3>
+                    <span id="prod-count-badge" class="text-[10px] font-black bg-slate-950 text-slate-400 px-3 py-1 rounded-full uppercase">0 Items</span>
                 </div>
-                <div id="prod-grid" class="flex-1 overflow-y-auto custom-scroll p-4 grid grid-cols-2 lg:grid-cols-3 gap-6 content-start grid-viewport">
+                <div id="prod-grid" class="flex-1 custom-scroll grid-viewport">
                     <!-- Cards injected here -->
                 </div>
             </section>
@@ -148,14 +193,14 @@
     </div>
 
     <!-- Done Modal -->
-    <div id="done-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-[100] backdrop-blur-sm">
-        <div class="bg-white p-8 rounded-2xl text-center shadow-2xl max-w-sm mx-4 transform transition-all">
-            <div class="text-green-500 mb-4">
-                <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+    <div id="done-modal" class="hidden fixed inset-0 bg-slate-900/90 flex items-center justify-center z-[100] backdrop-blur-sm">
+        <div class="bg-white p-12 rounded-[2rem] text-center shadow-2xl max-w-sm mx-4 border border-slate-200">
+            <div class="bg-emerald-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 text-emerald-600">
+                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
             </div>
-            <h3 class="text-2xl font-bold text-gray-800 mb-2">Done Status</h3>
-            <p class="text-gray-600 mb-6" id="modal-message">Submitted successfully.</p>
-            <button onclick="closeModal()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all">
+            <h3 class="text-3xl font-black text-slate-900 mb-3 uppercase tracking-tight">Submitted</h3>
+            <p class="text-slate-600 font-bold mb-10 leading-relaxed" id="modal-message">Entries logged successfully.</p>
+            <button onclick="closeModal()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black hover:bg-blue-700 transition-all shadow-xl active:scale-95 uppercase tracking-widest">
                 Continue
             </button>
         </div>
@@ -172,8 +217,7 @@
         let currentCategory = "";
         let selections = {}; 
 
-        let isSyncingLeft = false;
-        let isSyncingRight = false;
+        let scrollLock = false;
 
         window.addEventListener('DOMContentLoaded', () => {
             fetchCSV();
@@ -189,7 +233,7 @@
                     populateCategories();
                     document.getElementById('loading-overlay').style.display = 'none';
                 },
-                error: () => alert("CSV Load Error.")
+                error: () => alert("CSV Load Failed.")
             });
         }
 
@@ -197,21 +241,17 @@
             const leftGrid = document.getElementById('new-grid');
             const rightGrid = document.getElementById('prod-grid');
 
-            leftGrid.onscroll = () => {
-                if (!isSyncingLeft) {
-                    isSyncingRight = true;
-                    rightGrid.scrollTop = leftGrid.scrollTop;
-                }
-                isSyncingLeft = false;
+            const sync = (source, target) => {
+                if (scrollLock) return;
+                scrollLock = true;
+                target.scrollTop = source.scrollTop;
+                requestAnimationFrame(() => {
+                    scrollLock = false;
+                });
             };
 
-            rightGrid.onscroll = () => {
-                if (!isSyncingRight) {
-                    isSyncingLeft = true;
-                    leftGrid.scrollTop = rightGrid.scrollTop;
-                }
-                isSyncingRight = false;
-            };
+            leftGrid.addEventListener('scroll', () => sync(leftGrid, rightGrid));
+            rightGrid.addEventListener('scroll', () => sync(rightGrid, leftGrid));
         }
 
         function populateCategories() {
@@ -229,7 +269,7 @@
                 .filter(item => item.Category === currentCategory)
                 .map(item => item.Sku_id))];
 
-            if (uniqueSkus.length === 0) return alert("No SKUs found for this category");
+            if (uniqueSkus.length === 0) return alert("No SKUs found");
 
             currentSkuIndex = 0;
             document.getElementById('header-user').innerText = `${currentUser} | ${currentCategory}`;
@@ -250,8 +290,8 @@
             const newData = skuData.filter(i => i.Model.toLowerCase().includes('new'));
             const prodData = skuData.filter(i => i.Model.toLowerCase().includes('prod'));
 
-            document.getElementById('new-count-badge').innerText = `Total: ${newData.length}`;
-            document.getElementById('prod-count-badge').innerText = `Total: ${prodData.length}`;
+            document.getElementById('new-count-badge').innerText = `${newData.length} Items`;
+            document.getElementById('prod-count-badge').innerText = `${prodData.length} Items`;
 
             document.getElementById('new-grid').innerHTML = newData.map(item => createCard(item)).join('');
             document.getElementById('prod-grid').innerHTML = prodData.map(item => createCard(item)).join('');
@@ -266,17 +306,17 @@
         function createCard(item) {
             const uniqueId = `${item.Sku_id}_${item.Model}_${item['File name']}`;
             return `
-                <div class="relative bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm image-container group">
-                    <div class="aspect-square flex items-center justify-center p-3 bg-white">
+                <div class="sku-card group">
+                    <div class="image-wrapper">
                         <img src="${item.url}" 
                              onerror="this.src='https://via.placeholder.com/200?text=No+Img'" 
-                             class="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform"
-                             alt="SKU Image"
+                             class="sku-image group-hover:scale-110 transition-transform duration-300"
+                             alt="SKU"
                              loading="lazy">
                     </div>
-                    <div class="p-3 border-t border-gray-50 bg-gray-50/50">
-                        <p class="text-[10px] font-bold text-gray-800 truncate" title="${item['File name']}">${item['File name']}</p>
-                        <p class="text-[9px] text-gray-400 uppercase font-bold mt-0.5 tracking-tight">${item.Model}</p>
+                    <div class="p-3 bg-slate-50 border-t border-slate-100 shrink-0">
+                        <p class="text-[9px] font-black text-slate-800 truncate uppercase" title="${item['File name']}">${item['File name']}</p>
+                        <p class="text-[8px] text-blue-600 font-black mt-1 uppercase tracking-tighter">${item.Model}</p>
                     </div>
                     <input type="checkbox" class="checkbox-overlay sku-check" 
                            data-uniqueid="${uniqueId}"
@@ -319,11 +359,11 @@
 
         async function submitToForm() {
             const selectedItems = Object.values(selections);
-            if (selectedItems.length === 0) return alert("Select images first");
+            if (selectedItems.length === 0) return alert("Select at least one image.");
 
             const btn = document.getElementById('submit-btn');
             btn.disabled = true;
-            btn.innerText = "Submitting...";
+            btn.innerText = "Processing...";
 
             const promises = selectedItems.map(item => {
                 const formData = new URLSearchParams();
@@ -341,7 +381,7 @@
             });
 
             await Promise.all(promises);
-            document.getElementById('modal-message').innerText = `Done! Submitted ${selectedItems.length} entries.`;
+            document.getElementById('modal-message').innerText = `${selectedItems.length} entries submitted successfully.`;
             document.getElementById('done-modal').classList.remove('hidden');
         }
 
