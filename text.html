@@ -16,7 +16,7 @@
             border: 1px solid #e5e7eb;
             border-radius: 12px;
             overflow: hidden;
-            height: 220px; /* Fixed height to ensure 2 rows fit well */
+            height: 240px; 
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
@@ -31,9 +31,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 8px;
+            padding: 12px;
             background: white;
-            min-height: 0; /* Allow image to shrink */
+            min-height: 0;
         }
 
         .sku-image {
@@ -46,13 +46,13 @@
             position: absolute;
             top: 10px;
             right: 10px;
-            width: 24px;
-            height: 24px;
+            width: 26px;
+            height: 26px;
             cursor: pointer;
             accent-color: #2563eb;
             z-index: 40;
             border: 2px solid white;
-            border-radius: 4px;
+            border-radius: 6px;
         }
 
         /* Custom Scrollbar */
@@ -67,14 +67,14 @@
             border-radius: 10px;
         }
 
-        /* Grid Viewport - Calculated to show roughly 2 rows (6 images) */
+        /* Grid Viewport - Calculated to show 2 rows (6 images) clearly */
         .grid-viewport {
             height: 100%;
             overflow-y: auto;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            padding: 16px;
+            gap: 16px;
+            padding: 20px;
             align-content: start;
         }
 
@@ -83,7 +83,7 @@
             .grid-viewport {
                 grid-template-columns: repeat(2, 1fr);
             }
-            .sku-card { height: 200px; }
+            .sku-card { height: 220px; }
         }
 
         .loader {
@@ -100,39 +100,42 @@
 <body class="bg-slate-100 h-screen font-sans overflow-hidden">
 
     <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+    <div id="loading-overlay" class="fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center">
         <div class="loader mb-4"></div>
-        <p class="text-slate-600 font-bold">Initializing Portal...</p>
+        <p class="text-slate-600 font-bold text-lg">Loading Products...</p>
     </div>
+
+    <!-- Hidden Submission Form -->
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+    <form id="google-form-proxy" action="https://docs.google.com/forms/d/e/1FAIpQLSeraoBf6s2nHnlflVGtzMWpHv2j1wpF4p3FfgQ-t_8yneOdjg/formResponse" method="POST" target="hidden_iframe" style="display:none;">
+        <input type="hidden" name="entry.106248745" id="f_name">
+        <input type="hidden" name="entry.675861556" id="f_sku">
+        <input type="hidden" name="entry.1292743855" id="f_model">
+        <input type="hidden" name="entry.341097138" id="f_cat">
+        <input type="hidden" name="entry.94706720" id="f_file">
+    </form>
 
     <!-- Login Page -->
     <div id="login-page" class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md border border-slate-100">
-            <div class="text-center mb-8">
+        <div class="bg-white p-12 rounded-3xl shadow-2xl w-full max-w-md border border-slate-100">
+            <div class="text-center mb-10">
                 <div class="inline-flex items-center justify-center w-20 h-20 bg-blue-600 rounded-3xl text-white mb-6 shadow-xl">
-                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                 </div>
-                <h1 class="text-3xl font-black text-slate-900 mb-2">Portal Access</h1>
-                <p class="text-slate-500 font-medium">Verification Required</p>
+                <h1 class="text-4xl font-black text-slate-900 mb-2 tracking-tight">Login</h1>
+                <p class="text-slate-500 font-medium">Operator Authentication</p>
             </div>
             
-            <div class="space-y-6">
+            <div class="space-y-8">
                 <div>
-                    <label class="block text-xs font-black text-slate-500 mb-2 uppercase tracking-widest">Select Name</label>
-                    <select id="user-name" class="w-full p-4 border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none bg-slate-50 font-bold transition-all appearance-none cursor-pointer">
+                    <label class="block text-xs font-black text-slate-400 mb-3 uppercase tracking-widest">Select Your Name</label>
+                    <select id="user-name" class="w-full p-5 border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none bg-slate-50 font-bold transition-all cursor-pointer text-lg appearance-none">
                         <option value="Rajmani">Rajmani</option>
                         <option value="Mohit">Mohit</option>
                     </select>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-black text-slate-500 mb-2 uppercase tracking-widest">Category</label>
-                    <select id="category-list" class="w-full p-4 border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none bg-slate-50 font-bold transition-all appearance-none cursor-pointer">
-                        <option value="">Fetching Categories...</option>
-                    </select>
-                </div>
-
-                <button onclick="handleLogin()" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg active:scale-95 uppercase tracking-widest">
+                <button onclick="handleLogin()" class="w-full bg-blue-600 text-white font-black py-5 rounded-2xl hover:bg-blue-700 transition-all shadow-xl active:scale-[0.98] uppercase tracking-widest text-lg">
                     Enter Dashboard
                 </button>
             </div>
@@ -144,11 +147,11 @@
         <header class="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center shrink-0 z-40">
             <div class="flex items-center gap-10">
                 <div>
-                    <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest" id="header-user">---</h2>
+                    <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5" id="header-user">---</h2>
                     <p class="text-xl font-black text-blue-600" id="header-sku-display">SKU: ---</p>
                 </div>
                 
-                <div class="flex items-center bg-slate-100 rounded-2xl p-1 shadow-inner">
+                <div class="flex items-center bg-slate-100 rounded-2xl p-1 shadow-inner border border-slate-200">
                     <button onclick="prevSku()" class="p-2.5 hover:bg-white hover:shadow-md rounded-xl transition-all text-slate-600 disabled:opacity-20" id="prev-btn">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
                     </button>
@@ -162,7 +165,7 @@
             <div class="flex items-center gap-6">
                 <span id="selection-count" class="text-sm font-black bg-blue-50 text-blue-700 px-5 py-2.5 rounded-2xl border-2 border-blue-100">0 Selected</span>
                 <button onclick="submitToForm()" id="submit-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-2xl font-black transition-all shadow-lg active:scale-95 uppercase tracking-tight">
-                    Submit Selection
+                    Submit Selections
                 </button>
             </div>
         </header>
@@ -171,7 +174,7 @@
             <!-- Left Side: NEW -->
             <section class="w-1/2 flex flex-col border-r border-slate-200 min-h-0">
                 <div class="bg-blue-600 px-6 py-3 flex justify-between items-center shadow-lg z-10 shrink-0">
-                    <h3 class="font-black text-white text-xs tracking-widest uppercase">NEW (LEFT)</h3>
+                    <h3 class="font-black text-white text-xs tracking-widest uppercase">NEW MODELS (LEFT)</h3>
                     <span id="new-count-badge" class="text-[10px] font-black bg-blue-800 text-blue-100 px-3 py-1 rounded-full uppercase">0 Items</span>
                 </div>
                 <div id="new-grid" class="flex-1 custom-scroll grid-viewport">
@@ -182,7 +185,7 @@
             <!-- Right Side: PROD -->
             <section class="w-1/2 flex flex-col bg-slate-50 min-h-0">
                 <div class="bg-slate-800 px-6 py-3 flex justify-between items-center shadow-lg z-10 shrink-0">
-                    <h3 class="font-black text-white text-xs tracking-widest uppercase">PROD (RIGHT)</h3>
+                    <h3 class="font-black text-white text-xs tracking-widest uppercase">PROD MODELS (RIGHT)</h3>
                     <span id="prod-count-badge" class="text-[10px] font-black bg-slate-950 text-slate-400 px-3 py-1 rounded-full uppercase">0 Items</span>
                 </div>
                 <div id="prod-grid" class="flex-1 custom-scroll grid-viewport">
@@ -198,23 +201,21 @@
             <div class="bg-emerald-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 text-emerald-600">
                 <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
             </div>
-            <h3 class="text-3xl font-black text-slate-900 mb-3 uppercase tracking-tight">Submitted</h3>
-            <p class="text-slate-600 font-bold mb-10 leading-relaxed" id="modal-message">Entries logged successfully.</p>
-            <button onclick="closeModal()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black hover:bg-blue-700 transition-all shadow-xl active:scale-95 uppercase tracking-widest">
-                Continue
+            <h3 class="text-3xl font-black text-slate-900 mb-3 uppercase tracking-tight tracking-tight">Submitted</h3>
+            <p class="text-slate-600 font-bold mb-10 leading-relaxed" id="modal-message">Data logged to sheet.</p>
+            <button onclick="closeModalAndAdvance()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black hover:bg-blue-700 transition-all shadow-xl active:scale-95 uppercase tracking-widest">
+                Continue to Next
             </button>
         </div>
     </div>
 
     <script>
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRRGCcDlcoYzbElD-e7ZOuwqQm-vfTOUff10tO9jgb4kZXng7CaWTev0-k2srzI4NBvsFhk2FytkHpb/pub?gid=0&single=true&output=csv';
-        const FORM_SUBMIT_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeraoBf6s2nHnlflVGtzMWpHv2j1wpF4p3FfgQ-t_8yneOdjg/formResponse";
 
         let fullDataset = [];
         let uniqueSkus = [];
         let currentSkuIndex = 0;
         let currentUser = "";
-        let currentCategory = "";
         let selections = {}; 
 
         let scrollLock = false;
@@ -229,8 +230,8 @@
                 download: true,
                 header: true,
                 complete: (results) => {
-                    fullDataset = results.data.filter(row => row.Sku_id);
-                    populateCategories();
+                    // Filter out rows that have a value in the "Status" column
+                    fullDataset = results.data.filter(row => row.Sku_id && !row.Status);
                     document.getElementById('loading-overlay').style.display = 'none';
                 },
                 error: () => alert("CSV Load Failed.")
@@ -254,25 +255,16 @@
             rightGrid.addEventListener('scroll', () => sync(rightGrid, leftGrid));
         }
 
-        function populateCategories() {
-            const select = document.getElementById('category-list');
-            const categories = [...new Set(fullDataset.map(item => item.Category))].filter(Boolean).sort();
-            select.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
-        }
-
         function handleLogin() {
             currentUser = document.getElementById('user-name').value;
-            currentCategory = document.getElementById('category-list').value;
-            if (!currentCategory) return alert("Select Category");
 
-            uniqueSkus = [...new Set(fullDataset
-                .filter(item => item.Category === currentCategory)
-                .map(item => item.Sku_id))];
+            // Generate unique SKUs from the entire available dataset (Category filter removed)
+            uniqueSkus = [...new Set(fullDataset.map(item => item.Sku_id))];
 
-            if (uniqueSkus.length === 0) return alert("No SKUs found");
+            if (uniqueSkus.length === 0) return alert("No available SKUs found in the source sheet.");
 
             currentSkuIndex = 0;
-            document.getElementById('header-user').innerText = `${currentUser} | ${currentCategory}`;
+            document.getElementById('header-user').innerText = `OPERATOR: ${currentUser}`;
             document.getElementById('login-page').classList.add('hidden');
             document.getElementById('main-page').classList.remove('hidden');
             renderCurrentSku();
@@ -309,7 +301,7 @@
                 <div class="sku-card group">
                     <div class="image-wrapper">
                         <img src="${item.url}" 
-                             onerror="this.src='https://via.placeholder.com/200?text=No+Img'" 
+                             onerror="this.src='https://via.placeholder.com/300?text=No+Image'" 
                              class="sku-image group-hover:scale-110 transition-transform duration-300"
                              alt="SKU"
                              loading="lazy">
@@ -322,6 +314,7 @@
                            data-uniqueid="${uniqueId}"
                            data-sku="${item.Sku_id}" 
                            data-model="${item.Model}"
+                           data-cat="${item.Category}"
                            data-file="${item['File name']}">
                 </div>
             `;
@@ -365,34 +358,43 @@
             btn.disabled = true;
             btn.innerText = "Processing...";
 
-            const promises = selectedItems.map(item => {
-                const formData = new URLSearchParams();
-                formData.append('entry.106248745', currentUser);
-                formData.append('entry.675861556', item.sku);
-                formData.append('entry.1292743855', item.model);
-                formData.append('entry.341097138', currentCategory);
-                formData.append('entry.94706720', item.file);
+            const form = document.getElementById('google-form-proxy');
+            
+            for (let i = 0; i < selectedItems.length; i++) {
+                const item = selectedItems[i];
+                
+                document.getElementById('f_name').value = currentUser;
+                document.getElementById('f_sku').value = item.sku;
+                document.getElementById('f_model').value = item.model;
+                document.getElementById('f_cat').value = item.cat; // Take original category from sheet
+                document.getElementById('f_file').value = item.file;
 
-                return fetch(FORM_SUBMIT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: formData.toString()
-                });
-            });
+                form.submit();
+                
+                if (i < selectedItems.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 800)); 
+                }
+            }
 
-            await Promise.all(promises);
-            document.getElementById('modal-message').innerText = `${selectedItems.length} entries submitted successfully.`;
+            document.getElementById('modal-message').innerText = `${selectedItems.length} selections logged successfully.`;
             document.getElementById('done-modal').classList.remove('hidden');
         }
 
-        function closeModal() {
+        function closeModalAndAdvance() {
             document.getElementById('done-modal').classList.add('hidden');
             selections = {};
             updateGlobalCount();
-            renderCurrentSku();
+            
             const btn = document.getElementById('submit-btn');
             btn.disabled = false;
-            btn.innerText = "Submit Selection";
+            btn.innerText = "Submit Selections";
+
+            if (currentSkuIndex < uniqueSkus.length - 1) {
+                nextSku();
+            } else {
+                renderCurrentSku(); 
+                alert("All available SKUs have been viewed.");
+            }
         }
     </script>
 </body>
