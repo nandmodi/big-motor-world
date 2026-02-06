@@ -1,401 +1,767 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SKU Selection Portal</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Card Styling to prevent overlapping */
-        .sku-card {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            overflow: hidden;
-            height: 240px; 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QC Process</title>
+  <link rel="icon" href="https://spyne-prod-ai.s3.us-east-1.amazonaws.com/ai-dataset/2025/logo/unnamed.png" type="image/x-icon"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root { --ring: rgba(59,130,246,.5); }
+    body { font-family: 'Inter', sans-serif; background: #f3f4f6; padding: 2rem; }
+    .card { background:#fff; border-radius:1.5rem; box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05); padding:2.5rem; margin-top:2rem; transition:transform .3s ease; }
+    .card:hover { transform: translateY(-5px); }
+    .login-input { width:100%; padding:.75rem; border:1px solid #d1d5db; border-radius:.5rem; font-size:1rem; transition:border-color .3s, box-shadow .3s; background:#fff; }
+    .login-input:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px var(--ring); }
+    .btn-primary { width:100%; padding:.75rem; background:#3b82f6; color:#fff; border:none; border-radius:.75rem; font-size:1.125rem; font-weight:600; cursor:pointer; transition:background .2s, transform .05s; }
+    .btn-primary:hover { background:#2563eb; } .btn-primary:active{ transform:scale(.98); }
 
-        .sku-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            transition: all 0.2s ease;
-        }
+    .image-category-title { font-size:1.25rem; font-weight:600; color:#1f2937; margin:1.5rem 0 1rem; border-bottom:2px solid #e5e7eb; padding-bottom:.5rem; }
 
-        .image-wrapper {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 12px;
-            background: white;
-            min-height: 0;
-        }
+    .image-card { position:relative; border:1px solid #e5e7eb; border-radius:.75rem; overflow:hidden; background:#f9fafb; transition:transform .2s, box-shadow .2s, outline .2s; }
+    .image-card:hover { transform: translateY(-3px); box-shadow:0 5px 10px rgba(0,0,0,.1); }
+    .image-card img { width:100%; height:auto; max-height:250px; object-fit:contain; background:#fff; }
+    .image-card.selected { outline: 3px solid #3b82f6; }
+    .img-check { position:absolute; top:.5rem; right:.5rem; height:22px; width:22px; }
+    .seq-badge { position:absolute; top:.5rem; left:.5rem; background:rgba(0,0,0,.6); color:#fff; font-size:.75rem; font-weight:700; padding:.25rem .5rem; border-radius:999px; }
 
-        .sku-image {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
+    /* Transparent Zoom Button (bottom-right) */
+    .zoom-btn {
+      position:absolute; bottom:.5rem; right:.5rem;
+      display:flex; align-items:center; justify-content:center;
+      width:36px; height:36px; border-radius:999px;
+      background:transparent; border:1px solid rgba(255,255,255,.6); color:#fff;
+      backdrop-filter: blur(0px); cursor:pointer;
+      transition: background .15s ease, transform .05s ease;
+    }
+    .zoom-btn:hover { background:rgba(0,0,0,.25); }
+    .zoom-btn:active { transform:scale(.96); }
+    .zoom-btn svg { width:18px; height:18px; }
 
-        .checkbox-overlay {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 26px;
-            height: 26px;
-            cursor: pointer;
-            accent-color: #2563eb;
-            z-index: 40;
-            border: 2px solid white;
-            border-radius: 6px;
-        }
+    /* Zoom Overlay: 80% of screen, input left & output right */
+    .zoom-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter: blur(2px); display:flex; align-items:center; justify-content:center; z-index:9999; }
+    .zoom-dialog { width:80vw; height:80vh; background:#000; border-radius:1rem; overflow:hidden; box-shadow:0 25px 50px rgba(0,0,0,.5); position:relative; }
+    .zoom-close { position:absolute; top:.75rem; right:.75rem; width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:999px; background:rgba(255,255,255,.1); color:#fff; border:1px solid rgba(255,255,255,.3); }
+    .zoom-close:hover { background:rgba(255,255,255,.2); }
+    .zoom-pane { background:#000; display:flex; align-items:center; justify-content:center; position:relative; }
+    .zoom-pane img { max-width:100%; max-height:100%; object-fit:contain; }
+    .zoom-label { position:absolute; bottom:.5rem; left:.75rem; font-size:.75rem; color:#fff; opacity:.8; background:rgba(0,0,0,.35); padding:.2rem .45rem; border-radius:.375rem; }
 
-        /* Custom Scrollbar */
-        .custom-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scroll::-webkit-scrollbar-track {
-            background: #f8fafc;
-        }
-        .custom-scroll::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
+    /* Bottom status bar inside zoom */
+    .zoom-statusbar {
+      position:absolute; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,.55);
+      backdrop-filter: blur(3px);
+      padding:.5rem .75rem;
+      display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:.5rem;
+      border-top: 1px solid rgba(255,255,255,.1);
+    }
+    .chip {
+      padding:.35rem .6rem; font-size:.8rem; border-radius:999px;
+      border:1px solid rgba(255,255,255,.35); color:#fff; background:rgba(255,255,255,.06);
+      cursor:pointer; user-select:none;
+    }
+    .chip.active { background:#2563eb; border-color:#2563eb; }
+    .chip[disabled] { opacity:.45; cursor:not-allowed; }
+    .chip-ghost { background:transparent; }
+    .chip-danger { border-color:#f87171; color:#fff; }
+    .chip-danger:hover { background:rgba(248,113,113,.2); }
 
-        /* Grid Viewport - Calculated to show 2 rows (6 images) clearly */
-        .grid-viewport {
-            height: 100%;
-            overflow-y: auto;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-            padding: 20px;
-            align-content: start;
-        }
-
-        /* Responsive grid */
-        @media (max-width: 1280px) {
-            .grid-viewport {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .sku-card { height: 220px; }
-        }
-
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
+    /* Message modal stacks below zoom */
+    #modal { z-index: 9000; }
+  </style>
 </head>
-<body class="bg-slate-100 h-screen font-sans overflow-hidden">
-
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center">
-        <div class="loader mb-4"></div>
-        <p class="text-slate-600 font-bold text-lg">Loading Products...</p>
-    </div>
-
-    <!-- Hidden Submission Form -->
-    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
-    <form id="google-form-proxy" action="https://docs.google.com/forms/d/e/1FAIpQLSeraoBf6s2nHnlflVGtzMWpHv2j1wpF4p3FfgQ-t_8yneOdjg/formResponse" method="POST" target="hidden_iframe" style="display:none;">
-        <input type="hidden" name="entry.106248745" id="f_name">
-        <input type="hidden" name="entry.675861556" id="f_sku">
-        <input type="hidden" name="entry.1292743855" id="f_model">
-        <input type="hidden" name="entry.341097138" id="f_cat">
-        <input type="hidden" name="entry.94706720" id="f_file">
-    </form>
-
-    <!-- Login Page -->
-    <div id="login-page" class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white p-12 rounded-3xl shadow-2xl w-full max-w-md border border-slate-100">
-            <div class="text-center mb-10">
-                <div class="inline-flex items-center justify-center w-20 h-20 bg-blue-600 rounded-3xl text-white mb-6 shadow-xl">
-                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                </div>
-                <h1 class="text-4xl font-black text-slate-900 mb-2 tracking-tight">Login</h1>
-                <p class="text-slate-500 font-medium">Operator Authentication</p>
-            </div>
-            
-            <div class="space-y-8">
-                <div>
-                    <label class="block text-xs font-black text-slate-400 mb-3 uppercase tracking-widest">Select Your Name</label>
-                    <select id="user-name" class="w-full p-5 border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none bg-slate-50 font-bold transition-all cursor-pointer text-lg appearance-none">
-                        <option value="Rajmani">Rajmani</option>
-                        <option value="Mohit">Mohit</option>
-                    </select>
-                </div>
-
-                <button onclick="handleLogin()" class="w-full bg-blue-600 text-white font-black py-5 rounded-2xl hover:bg-blue-700 transition-all shadow-xl active:scale-[0.98] uppercase tracking-widest text-lg">
-                    Enter Dashboard
-                </button>
-            </div>
+<body class="bg-gray-100">
+  <div id="app" class="mx-auto">
+    <!-- Login View -->
+    <div id="login-view" class="card max-w-md mx-auto">
+      <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">QC Login</h1>
+      <form id="login-form" class="space-y-6">
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <select id="email" class="login-input" required>
+            <option value="shweta.gupta@spyne.co.in">shweta.gupta@spyne.co.in</option>
+            <option value="abhishek.kumar@spyne.ai">abhishek.kumar@spyne.ai</option>
+            <option value="Kishor@spyne.ai">Kishor@spyne.ai</option>
+            <option value="Praveen.agarwal@spyne.ai">Praveen.agarwal@spyne.ai</option>
+            <option value="sumit.rana@spyne.ai">sumit.rana@spyne.ai</option>
+          </select>
         </div>
-    </div>
-
-    <!-- Main Dashboard -->
-    <div id="main-page" class="hidden h-screen flex flex-col bg-white">
-        <header class="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center shrink-0 z-40">
-            <div class="flex items-center gap-10">
-                <div>
-                    <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5" id="header-user">---</h2>
-                    <p class="text-xl font-black text-blue-600" id="header-sku-display">SKU: ---</p>
-                </div>
-                
-                <div class="flex items-center bg-slate-100 rounded-2xl p-1 shadow-inner border border-slate-200">
-                    <button onclick="prevSku()" class="p-2.5 hover:bg-white hover:shadow-md rounded-xl transition-all text-slate-600 disabled:opacity-20" id="prev-btn">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
-                    </button>
-                    <span class="px-6 text-sm font-black text-slate-600 min-w-[120px] text-center" id="sku-counter">0 / 0</span>
-                    <button onclick="nextSku()" class="p-2.5 hover:bg-white hover:shadow-md rounded-xl transition-all text-slate-600 disabled:opacity-20" id="next-btn">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
-                    </button>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-6">
-                <span id="selection-count" class="text-sm font-black bg-blue-50 text-blue-700 px-5 py-2.5 rounded-2xl border-2 border-blue-100">0 Selected</span>
-                <button onclick="submitToForm()" id="submit-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-2xl font-black transition-all shadow-lg active:scale-95 uppercase tracking-tight">
-                    Submit Selections
-                </button>
-            </div>
-        </header>
-
-        <main class="flex-1 flex min-h-0 overflow-hidden">
-            <!-- Left Side: NEW -->
-            <section class="w-1/2 flex flex-col border-r border-slate-200 min-h-0">
-                <div class="bg-blue-600 px-6 py-3 flex justify-between items-center shadow-lg z-10 shrink-0">
-                    <h3 class="font-black text-white text-xs tracking-widest uppercase">NEW MODELS (LEFT)</h3>
-                    <span id="new-count-badge" class="text-[10px] font-black bg-blue-800 text-blue-100 px-3 py-1 rounded-full uppercase">0 Items</span>
-                </div>
-                <div id="new-grid" class="flex-1 custom-scroll grid-viewport">
-                    <!-- Cards injected here -->
-                </div>
-            </section>
-
-            <!-- Right Side: PROD -->
-            <section class="w-1/2 flex flex-col bg-slate-50 min-h-0">
-                <div class="bg-slate-800 px-6 py-3 flex justify-between items-center shadow-lg z-10 shrink-0">
-                    <h3 class="font-black text-white text-xs tracking-widest uppercase">PROD MODELS (RIGHT)</h3>
-                    <span id="prod-count-badge" class="text-[10px] font-black bg-slate-950 text-slate-400 px-3 py-1 rounded-full uppercase">0 Items</span>
-                </div>
-                <div id="prod-grid" class="flex-1 custom-scroll grid-viewport">
-                    <!-- Cards injected here -->
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- Done Modal -->
-    <div id="done-modal" class="hidden fixed inset-0 bg-slate-900/90 flex items-center justify-center z-[100] backdrop-blur-sm">
-        <div class="bg-white p-12 rounded-[2rem] text-center shadow-2xl max-w-sm mx-4 border border-slate-200">
-            <div class="bg-emerald-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 text-emerald-600">
-                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-            </div>
-            <h3 class="text-3xl font-black text-slate-900 mb-3 uppercase tracking-tight tracking-tight">Submitted</h3>
-            <p class="text-slate-600 font-bold mb-10 leading-relaxed" id="modal-message">Data logged to sheet.</p>
-            <button onclick="closeModalAndAdvance()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black hover:bg-blue-700 transition-all shadow-xl active:scale-95 uppercase tracking-widest">
-                Continue to Next
-            </button>
+        <div>
+          <label for="team-name" class="block text-sm font-medium text-gray-700 mb-1">Team Name</label>
+          <select id="team-name" class="login-input" required>
+            <!-- Populated from CSV -->
+          </select>
         </div>
+        <button type="submit" class="btn-primary">Login</button>
+      </form>
     </div>
 
-    <script>
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRRGCcDlcoYzbElD-e7ZOuwqQm-vfTOUff10tO9jgb4kZXng7CaWTev0-k2srzI4NBvsFhk2FytkHpb/pub?gid=0&single=true&output=csv';
+    <!-- QC View -->
+    <div id="qc-view" class="hidden">
+      <div class="px-8 py-4 max-w-7xl mx-auto">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-3">
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800" id="sku-name-display"></h1>
+            <p class="text-sm text-gray-600" id="team-name-display"></p>
+          </div>
+          <p class="text-base sm:text-lg text-gray-600" id="sku-id-display"></p>
+        </div>
+      </div>
 
-        let fullDataset = [];
-        let uniqueSkus = [];
-        let currentSkuIndex = 0;
-        let currentUser = "";
-        let selections = {}; 
+      <!-- Images -->
+      <div id="image-display" class="space-y-6"></div>
 
-        let scrollLock = false;
+      <!-- Selection bar -->
+      <div class="px-8 py-2 max-w-7xl mx-auto flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          Selected images: <span id="selected-count" class="font-semibold">0</span>
+        </div>
+        <div class="flex gap-2">
+          <button id="clear-selection" class="px-3 py-1.5 rounded-lg border text-sm">Clear</button>
+        </div>
+      </div>
 
-        window.addEventListener('DOMContentLoaded', () => {
-            fetchCSV();
-            setupSyncScroll();
+      <div class="px-8 py-4 max-w-7xl mx-auto">
+        <div class="card mt-4 flex flex-col items-center w-full">
+          <div class="flex flex-wrap justify-center gap-6 mb-8">
+            <label class="flex items-center text-gray-700 font-medium">
+              <input type="checkbox" name="qc_option" value="Sequence" class="h-5 w-5 rounded-md text-blue-600">
+              <span class="ml-2">Sequence</span>
+            </label>
+            <label class="flex items-center text-gray-700 font-medium">
+              <input type="checkbox" name="qc_option" value="Tilt" class="h-5 w-5 rounded-md text-blue-600">
+              <span class="ml-2">Tilt</span>
+            </label>
+            <label class="flex items-center text-gray-700 font-medium">
+              <input type="checkbox" name="qc_option" value="Issue" class="h-5 w-5 rounded-md text-blue-600">
+              <span class="ml-2">Issue</span>
+            </label>
+            <label class="flex items-center text-gray-700 font-medium">
+              <input type="checkbox" name="qc_option" value="option1" class="h-5 w-5 rounded-md text-blue-600">
+              <span class="ml-2">Option 1</span>
+            </label>
+            <label class="flex items-center text-gray-700 font-medium">
+              <input type="checkbox" name="qc_option" value="option2" class="h-5 w-5 rounded-md text-blue-600">
+              <span class="ml-2">Option 2</span>
+            </label>
+          </div>
+
+          <button id="submit-btn" class="btn-primary w-64">Submit</button>
+          <p class="mt-3 text-xs text-gray-500 text-center">
+            If no image is selected, a single SKU-level entry is submitted.<br/>
+            If no option is selected, <strong>Status</strong> will be submitted as <strong>“Done”</strong>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Message Modal -->
+  <div id="modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 h-full w-full flex items-center justify-center">
+    <div class="bg-white p-6 rounded-xl shadow-xl text-center max-w-md w-full mx-3">
+      <p id="modal-message" class="text-gray-800 text-lg"></p>
+      <button id="modal-close-btn" class="mt-4 px-5 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">OK</button>
+    </div>
+  </div>
+
+  <!-- Zoom Overlay (80% of screen) -->
+  <div id="zoom-overlay" class="hidden zoom-overlay">
+    <div class="zoom-dialog">
+      <button id="zoom-close" class="zoom-close" aria-label="Close zoom">
+        <span class="text-2xl leading-none">&times;</span>
+      </button>
+      <div class="w-full h-full grid grid-cols-1 md:grid-cols-2">
+        <div class="zoom-pane">
+          <img id="zoom-input-img" alt="Input image preview"/>
+          <div class="zoom-label">Input</div>
+        </div>
+        <div class="zoom-pane">
+          <img id="zoom-output-img" alt="Output image preview"/>
+          <div class="zoom-label">Output</div>
+        </div>
+      </div>
+
+      <!-- Per-image status chips -->
+      <div id="zoom-statusbar" class="zoom-statusbar">
+        <!-- Chips injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /***** CONFIG *****/
+    const sheetUrl =
+      'https://docs.google.com/spreadsheets/d/e/2PACX-1vSG8Kx21fGcA06IVjoAARb1L656dTEBbzxfuBTXCn1rqDfYiP1AQeXDaD9WolWVlCn1CLFVjdXEHZXU/pub?gid=0&single=true&output=csv';
+
+    const formResponseUrl =
+      'https://docs.google.com/forms/d/e/1FAIpQLSf--_CEKCjaq_opP3Fi1oU8qDeExUvVuCa3GJcTV4NETK8W7g/formResponse';
+
+    // ✅ Your exact Form entry IDs
+    const entryIds = {
+      email: 'entry.1543570917',        // Email
+      teamName: 'entry.462099554',      // Team_id
+      issueOptions: 'entry.1537009712', // Status (must include "Done")
+      skuName: 'entry.1722677845',      // SKU_Name
+      skuId: 'entry.1740050363',        // SKU_Id
+      imageId: 'entry.608047894',       // Image_id
+      imageUrl: '',                     // (optional)
+      imageCategory: '',                // (optional)
+      frameSeqNo: ''                    // (optional)
+    };
+
+    const statusChoiceMap = {
+      Sequence: 'Sequence',
+      Tilt: 'Tilt',
+      Issue: 'Issue',
+      option1: 'Option 1',
+      option2: 'Option 2'
+    };
+    const STATUS_LABELS = ['Sequence','Tilt','Issue','Option 1','Option 2','Done'];
+
+    // Throttle between Google Form hits to avoid rate limits (ms)
+    const POST_DELAY_MS = 300;
+
+    /***** STATE + UI REFS *****/
+    let parsedData = null;
+    let allSkus = [];
+    let currentSkuIndex = 0;
+
+    // Per-image issues: Map<imageId, Set<statusLabels>>
+    const perImageIssues = new Map();
+    let currentZoomImageId = null;
+
+    const loginView = document.getElementById('login-view');
+    const qcView = document.getElementById('qc-view');
+    const loginForm = document.getElementById('login-form');
+    const emailSelect = document.getElementById('email');
+    const teamNameSelect = document.getElementById('team-name');
+    const skuNameDisplay = document.getElementById('sku-name-display');
+    const teamNameDisplay = document.getElementById('team-name-display');
+    const skuIdDisplay = document.getElementById('sku-id-display');
+    const imageDisplay = document.getElementById('image-display');
+    const submitBtn = document.getElementById('submit-btn');
+    const modal = document.getElementById('modal');
+    const modalMessage = document.getElementById('modal-message');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    const selectedCount = document.getElementById('selected-count');
+    const clearSelectionBtn = document.getElementById('clear-selection');
+
+    // Zoom elements
+    const zoomOverlay = document.getElementById('zoom-overlay');
+    const zoomClose = document.getElementById('zoom-close');
+    const zoomInputImg = document.getElementById('zoom-input-img');
+    const zoomOutputImg = document.getElementById('zoom-output-img');
+    const zoomStatusbar = document.getElementById('zoom-statusbar');
+
+    /***** HELPERS *****/
+    function showModal(message) {
+      modalMessage.textContent = message;
+      modal.classList.remove('hidden');
+    }
+    modalCloseBtn.addEventListener('click', () => modal.classList.add('hidden'));
+
+    async function fetchCsvData() {
+      try {
+        const response = await fetch(sheetUrl);
+        const text = await response.text();
+        return text;
+      } catch (err) {
+        console.error('CSV fetch error:', err);
+        showModal('Failed to load data. Please check network.');
+        return null;
+      }
+    }
+
+    function splitCsvRow(line) {
+      // Split by commas not inside quotes
+      return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/^"|"$/g, ''));
+    }
+
+    function parseCsv(csvText) {
+      const lines = csvText.trim().split('\n');
+      const headers = splitCsvRow(lines[0]).map(h => h.trim().toLowerCase());
+
+      const getIdx = (candidates) => {
+        for (const name of candidates) {
+          const i = headers.indexOf(name);
+          if (i !== -1) return i;
+        }
+        return -1;
+      };
+
+      const idx = {
+        skuId: getIdx(['ai.sku_id','sku_id']),
+        skuName: getIdx(['sku_name']),
+        teamName: getIdx(['team_name']),
+        imageCategory: getIdx(['image_category']),
+        outputImageUrl: getIdx(['output_image_hres_url','output_image_url']),
+        inputImageUrl: getIdx(['input_image_hres_url','input_image_url','input_url']),
+        status: getIdx(['status']),
+        frameSeqNo: getIdx(['frame_seq_no','sequence_no','seq_no']),
+        imageId: getIdx(['ai.image_id','image_id'])
+      };
+
+      const dataLines = lines.slice(1);
+      const skus = {};
+      const teamNames = new Set();
+      const excludedStatuses = ['Tilt', 'Sequence', 'Issue']; // skip rows that are already status rows
+
+      dataLines.forEach(line => {
+        if (!line.trim()) return;
+        const values = splitCsvRow(line);
+
+        const status = idx.status >= 0 ? (values[idx.status]?.trim() ?? '') : '';
+        if (excludedStatuses.includes(status)) return;
+
+        const sku_id = idx.skuId >= 0 ? values[idx.skuId] : '';
+        const sku_name = idx.skuName >= 0 ? values[idx.skuName] : '';
+        const team_name = idx.teamName >= 0 ? (values[idx.teamName]?.trim() || '') : '';
+        const image_category = idx.imageCategory >= 0 ? values[idx.imageCategory] : '';
+        const output_image_url = idx.outputImageUrl >= 0 ? values[idx.outputImageUrl] : '';
+        const input_image_url = idx.inputImageUrl >= 0 ? values[idx.inputImageUrl] : '';
+        const frame_seq_no = idx.frameSeqNo >= 0 ? values[idx.frameSeqNo] : '';
+        const image_id = idx.imageId >= 0 ? values[idx.imageId] : '';
+
+        if (team_name) teamNames.add(team_name);
+
+        if (sku_id && sku_name && image_category && output_image_url) {
+          if (!skus[sku_id]) {
+            skus[sku_id] = { id: sku_id, name: sku_name, teamName: team_name, categories: {} };
+          } else if (!skus[sku_id].teamName && team_name) {
+            skus[sku_id].teamName = team_name;
+          }
+          if (!skus[sku_id].categories[image_category]) {
+            skus[sku_id].categories[image_category] = [];
+          }
+          skus[sku_id].categories[image_category].push({
+            id: sku_id,
+            imageId: image_id || null,
+            url: output_image_url,
+            inputUrl: input_image_url || '',
+            sequenceNo: frame_seq_no ? parseInt(frame_seq_no, 10) : 0,
+            category: image_category || ''
+          });
+        }
+      });
+
+      return { skus: Object.values(skus), teamNames: Array.from(teamNames).sort() };
+    }
+
+    function scrollToTop() {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      window.scrollTo(0, 0);
+    }
+
+    function updateSelectedCount() {
+      const count = document.querySelectorAll('.img-check:checked').length;
+      selectedCount.textContent = String(count);
+    }
+
+    function clearSelection() {
+      document.querySelectorAll('.img-check').forEach(cb => {
+        cb.checked = false;
+        cb.closest('.image-card')?.classList.remove('selected');
+      });
+      updateSelectedCount();
+    }
+
+    function getSelectedImagesForCurrentSku() {
+      const nodes = document.querySelectorAll('.img-check:checked');
+      const arr = [];
+      nodes.forEach(cb => {
+        const card = cb.closest('.image-card');
+        if (!card) return;
+        arr.push({
+          imageId: card.dataset.imageId || '',
+          url: card.dataset.url || '',
+          inputUrl: card.dataset.inputUrl || '',
+          category: card.dataset.category || '',
+          sequenceNo: card.dataset.seq ? parseInt(card.dataset.seq,10) : 0
+        });
+      });
+      return arr;
+    }
+
+    function imageCardHTML(image, category, skuId) {
+      const safeOut = (image.url || '').replace(/"/g,'&quot;');
+      const safeIn  = (image.inputUrl || '').replace(/"/g,'&quot;');
+      const safeCat = (category || '').replace(/"/g,'&quot;');
+      const safeImgId = (image.imageId || '').replace(/"/g,'&quot;');
+
+      return `
+        <div class="image-card"
+             data-image-id="${safeImgId}"
+             data-url="${safeOut}"
+             data-input-url="${safeIn}"
+             data-category="${safeCat}"
+             data-seq="${image.sequenceNo}">
+          <span class="seq-badge">${image.sequenceNo}</span>
+          <input type="checkbox" class="img-check" />
+          <img src="${safeOut}" alt="SKU ${skuId} - ${category}"
+               onerror="this.onerror=null;this.src='https://placehold.co/400x300/e5e7eb/7f8c8d?text=Image+Not+Found';">
+
+          <!-- Transparent Zoom Button -->
+          <button class="zoom-btn" title="Zoom" aria-label="Zoom">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="7"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </button>
+        </div>
+      `;
+    }
+
+    function wireImageCardInteractions(root) {
+      root.querySelectorAll('.image-card').forEach(card => {
+        const cb = card.querySelector('.img-check');
+        const zoom = card.querySelector('.zoom-btn');
+
+        // Clicking the card toggles selection
+        card.addEventListener('click', (e) => {
+          if (e.target === cb || e.target === zoom || zoom.contains(e.target)) return;
+          cb.checked = !cb.checked;
+          card.classList.toggle('selected', cb.checked);
+          updateSelectedCount();
         });
 
-        async function fetchCSV() {
-            Papa.parse(CSV_URL, {
-                download: true,
-                header: true,
-                complete: (results) => {
-                    // Filter out rows that have a value in the "Status" column
-                    fullDataset = results.data.filter(row => row.Sku_id && !row.Status);
-                    document.getElementById('loading-overlay').style.display = 'none';
-                },
-                error: () => alert("CSV Load Failed.")
-            });
-        }
+        // Checkbox manual change
+        cb.addEventListener('change', () => {
+          card.classList.toggle('selected', cb.checked);
+          updateSelectedCount();
+        });
 
-        function setupSyncScroll() {
-            const leftGrid = document.getElementById('new-grid');
-            const rightGrid = document.getElementById('prod-grid');
+        // Zoom button opens the zoom overlay
+        zoom.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openZoom({
+            imageId: card.dataset.imageId || '',
+            inputUrl: card.dataset.inputUrl || '',
+            outputUrl: card.dataset.url || ''
+          }, card);
+        });
+      });
+    }
 
-            const sync = (source, target) => {
-                if (scrollLock) return;
-                scrollLock = true;
-                target.scrollTop = source.scrollTop;
-                requestAnimationFrame(() => {
-                    scrollLock = false;
-                });
-            };
+    function renderZoomChips(imageId) {
+      zoomStatusbar.innerHTML = '';
+      const disabled = !imageId;
+      const selectedSet = perImageIssues.get(imageId) || new Set();
 
-            leftGrid.addEventListener('scroll', () => sync(leftGrid, rightGrid));
-            rightGrid.addEventListener('scroll', () => sync(rightGrid, leftGrid));
-        }
+      // Helper to create a chip
+      const makeChip = (label, opts={}) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip';
+        chip.textContent = label;
+        if (opts.ghost) chip.classList.add('chip-ghost');
+        if (opts.danger) chip.classList.add('chip-danger');
+        if (disabled) chip.setAttribute('disabled','');
+        if (selectedSet.has(label)) chip.classList.add('active');
+        chip.addEventListener('click', () => {
+          // ensure we have a set
+          let set = perImageIssues.get(imageId);
+          if (!set) { set = new Set(); perImageIssues.set(imageId, set); }
 
-        function handleLogin() {
-            currentUser = document.getElementById('user-name').value;
-
-            // Generate unique SKUs from the entire available dataset (Category filter removed)
-            uniqueSkus = [...new Set(fullDataset.map(item => item.Sku_id))];
-
-            if (uniqueSkus.length === 0) return alert("No available SKUs found in the source sheet.");
-
-            currentSkuIndex = 0;
-            document.getElementById('header-user').innerText = `OPERATOR: ${currentUser}`;
-            document.getElementById('login-page').classList.add('hidden');
-            document.getElementById('main-page').classList.remove('hidden');
-            renderCurrentSku();
-        }
-
-        function renderCurrentSku() {
-            const skuId = uniqueSkus[currentSkuIndex];
-            document.getElementById('header-sku-display').innerText = `SKU: ${skuId}`;
-            document.getElementById('sku-counter').innerText = `${currentSkuIndex + 1} / ${uniqueSkus.length}`;
-            
-            document.getElementById('prev-btn').disabled = currentSkuIndex === 0;
-            document.getElementById('next-btn').disabled = currentSkuIndex === uniqueSkus.length - 1;
-
-            const skuData = fullDataset.filter(i => i.Sku_id === skuId);
-            const newData = skuData.filter(i => i.Model.toLowerCase().includes('new'));
-            const prodData = skuData.filter(i => i.Model.toLowerCase().includes('prod'));
-
-            document.getElementById('new-count-badge').innerText = `${newData.length} Items`;
-            document.getElementById('prod-count-badge').innerText = `${prodData.length} Items`;
-
-            document.getElementById('new-grid').innerHTML = newData.map(item => createCard(item)).join('');
-            document.getElementById('prod-grid').innerHTML = prodData.map(item => createCard(item)).join('');
-
-            document.querySelectorAll('.sku-check').forEach(box => {
-                if (selections[box.dataset.uniqueid]) box.checked = true;
-                box.addEventListener('change', toggleSelection);
-            });
-            updateGlobalCount();
-        }
-
-        function createCard(item) {
-            const uniqueId = `${item.Sku_id}_${item.Model}_${item['File name']}`;
-            return `
-                <div class="sku-card group">
-                    <div class="image-wrapper">
-                        <img src="${item.url}" 
-                             onerror="this.src='https://via.placeholder.com/300?text=No+Image'" 
-                             class="sku-image group-hover:scale-110 transition-transform duration-300"
-                             alt="SKU"
-                             loading="lazy">
-                    </div>
-                    <div class="p-3 bg-slate-50 border-t border-slate-100 shrink-0">
-                        <p class="text-[9px] font-black text-slate-800 truncate uppercase" title="${item['File name']}">${item['File name']}</p>
-                        <p class="text-[8px] text-blue-600 font-black mt-1 uppercase tracking-tighter">${item.Model}</p>
-                    </div>
-                    <input type="checkbox" class="checkbox-overlay sku-check" 
-                           data-uniqueid="${uniqueId}"
-                           data-sku="${item.Sku_id}" 
-                           data-model="${item.Model}"
-                           data-cat="${item.Category}"
-                           data-file="${item['File name']}">
-                </div>
-            `;
-        }
-
-        function toggleSelection(e) {
-            const id = e.target.dataset.uniqueid;
-            if (e.target.checked) selections[id] = e.target.dataset;
-            else delete selections[id];
-            updateGlobalCount();
-        }
-
-        function updateGlobalCount() {
-            const count = Object.keys(selections).length;
-            document.getElementById('selection-count').innerText = `${count} Selected`;
-        }
-
-        function nextSku() {
-            if (currentSkuIndex < uniqueSkus.length - 1) {
-                currentSkuIndex++;
-                renderCurrentSku();
-                document.getElementById('new-grid').scrollTop = 0;
-                document.getElementById('prod-grid').scrollTop = 0;
-            }
-        }
-
-        function prevSku() {
-            if (currentSkuIndex > 0) {
-                currentSkuIndex--;
-                renderCurrentSku();
-                document.getElementById('new-grid').scrollTop = 0;
-                document.getElementById('prod-grid').scrollTop = 0;
-            }
-        }
-
-        async function submitToForm() {
-            const selectedItems = Object.values(selections);
-            if (selectedItems.length === 0) return alert("Select at least one image.");
-
-            const btn = document.getElementById('submit-btn');
-            btn.disabled = true;
-            btn.innerText = "Processing...";
-
-            const form = document.getElementById('google-form-proxy');
-            
-            for (let i = 0; i < selectedItems.length; i++) {
-                const item = selectedItems[i];
-                
-                document.getElementById('f_name').value = currentUser;
-                document.getElementById('f_sku').value = item.sku;
-                document.getElementById('f_model').value = item.model;
-                document.getElementById('f_cat').value = item.cat; // Take original category from sheet
-                document.getElementById('f_file').value = item.file;
-
-                form.submit();
-                
-                if (i < selectedItems.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 800)); 
-                }
-            }
-
-            document.getElementById('modal-message').innerText = `${selectedItems.length} selections logged successfully.`;
-            document.getElementById('done-modal').classList.remove('hidden');
-        }
-
-        function closeModalAndAdvance() {
-            document.getElementById('done-modal').classList.add('hidden');
-            selections = {};
-            updateGlobalCount();
-            
-            const btn = document.getElementById('submit-btn');
-            btn.disabled = false;
-            btn.innerText = "Submit Selections";
-
-            if (currentSkuIndex < uniqueSkus.length - 1) {
-                nextSku();
+          if (label === 'Done') {
+            // Done is exclusive
+            if (set.has('Done')) {
+              set.delete('Done');
             } else {
-                renderCurrentSku(); 
-                alert("All available SKUs have been viewed.");
+              set.clear();
+              set.add('Done');
             }
+          } else {
+            // toggling any other removes Done
+            if (set.has(label)) {
+              set.delete(label);
+            } else {
+              set.add(label);
+              set.delete('Done');
+            }
+          }
+          renderZoomChips(imageId); // re-render to reflect
+          // Auto-select the image in grid if statuses set
+          if (set.size > 0) {
+            const card = document.querySelector(`.image-card[data-image-id="${CSS.escape(imageId)}"]`);
+            if (card) {
+              const cb = card.querySelector('.img-check');
+              if (cb && !cb.checked) {
+                cb.checked = true;
+                card.classList.add('selected');
+                updateSelectedCount();
+              }
+            }
+          }
+        });
+        return chip;
+      };
+
+      // Status chips
+      STATUS_LABELS.forEach(label => {
+        zoomStatusbar.appendChild(makeChip(label));
+      });
+
+      // Separator
+      const sep = document.createElement('span');
+      sep.style.width = '1px';
+      sep.style.height = '18px';
+      sep.style.background = 'rgba(255,255,255,.25)';
+      sep.style.margin = '0 .5rem';
+      zoomStatusbar.appendChild(sep);
+
+      // Clear chip
+      const clearChip = makeChip('Clear', {ghost:true, danger:true});
+      clearChip.addEventListener('click', () => {
+        perImageIssues.delete(imageId);
+        renderZoomChips(imageId);
+      });
+      zoomStatusbar.appendChild(clearChip);
+    }
+
+    function openZoom({imageId, inputUrl, outputUrl}, cardEl) {
+      currentZoomImageId = imageId || null;
+
+      // If input is missing, show placeholder
+      zoomInputImg.src = inputUrl || 'https://placehold.co/1200x800/111/AAA?text=No+Input+Image';
+      zoomOutputImg.src = outputUrl || 'https://placehold.co/1200x800/111/AAA?text=No+Output+Image';
+
+      // Build chips for this image
+      renderZoomChips(currentZoomImageId);
+
+      zoomOverlay.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+
+      // If user starts to mark issues for an image without selecting, we'll auto-select on first toggle (handled in chip click)
+    }
+
+    function closeZoom() {
+      zoomOverlay.classList.add('hidden');
+      document.body.style.overflow = '';
+      currentZoomImageId = null;
+      // Clear sources to free memory on large images
+      zoomInputImg.src = '';
+      zoomOutputImg.src = '';
+    }
+
+    zoomClose.addEventListener('click', closeZoom);
+    zoomOverlay.addEventListener('click', (e) => {
+      if (e.target === zoomOverlay) closeZoom(); // backdrop click
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !zoomOverlay.classList.contains('hidden')) closeZoom();
+    });
+
+    function displayCurrentSku() {
+      scrollToTop();
+
+      if (currentSkuIndex >= allSkus.length) {
+        showModal('You have reviewed all available SKUs for this team!');
+        skuNameDisplay.textContent = 'All SKUs Reviewed';
+        teamNameDisplay.textContent = '';
+        skuIdDisplay.textContent = '';
+        imageDisplay.innerHTML = '';
+        submitBtn.disabled = true;
+        selectedCount.textContent = '0';
+        return;
+      }
+
+      const currentSku = allSkus[currentSkuIndex];
+
+      skuNameDisplay.textContent = currentSku.name || 'N/A';
+      teamNameDisplay.textContent = currentSku.teamName ? `Team: ${currentSku.teamName}` : `Team: ${teamNameSelect.value || '-'}`;
+      skuIdDisplay.textContent = `SKU ID: ${currentSku.id}`;
+      imageDisplay.innerHTML = '';
+
+      // reset QC checkboxes & selection
+      document.querySelectorAll('input[name="qc_option"]').forEach(cb => (cb.checked = false));
+      clearSelection();
+
+      const orderedCategories = ['Exterior','Interior','Focus Shoot','Miscellaneous'];
+      orderedCategories.forEach(category => {
+        if (!currentSku.categories[category]) return;
+
+        const section = document.createElement('div');
+        section.className = 'my-4';
+        section.innerHTML = `<h2 class="image-category-title px-8 py-4 max-w-7xl mx-auto">${category}</h2>`;
+
+        const grid = document.createElement('div');
+        grid.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 px-8';
+
+        const sorted = currentSku.categories[category].sort((a,b) => a.sequenceNo - b.sequenceNo);
+        sorted.forEach(image => {
+          grid.insertAdjacentHTML('beforeend', imageCardHTML(image, category, currentSku.id));
+        });
+
+        section.appendChild(grid);
+        imageDisplay.appendChild(section);
+        wireImageCardInteractions(section);
+      });
+
+      updateSelectedCount();
+    }
+
+    function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+    async function postToForm(formData) {
+      try {
+        await fetch(formResponseUrl, { method: 'POST', body: formData, mode: 'no-cors' });
+        return true; // opaque; assume success
+      } catch (e) {
+        console.error('Form post error:', e);
+        return false;
+      }
+    }
+
+    /***** EVENTS *****/
+    // Filter by team on login
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const selectedTeam = teamNameSelect.value?.trim();
+      if (!parsedData) {
+        showModal('Data not loaded yet. Please wait a moment and try again.');
+        return;
+      }
+
+      allSkus = parsedData.skus.filter(s => (s.teamName || '') === selectedTeam);
+
+      loginView.classList.add('hidden');
+      qcView.classList.remove('hidden');
+
+      if (allSkus.length === 0) {
+        skuNameDisplay.textContent = 'No SKUs';
+        teamNameDisplay.textContent = `Team: ${selectedTeam}`;
+        skuIdDisplay.textContent = '';
+        imageDisplay.innerHTML = '';
+        submitBtn.disabled = true;
+        showModal(`No SKUs found for team: ${selectedTeam}`);
+        return;
+      }
+
+      submitBtn.disabled = false;
+      currentSkuIndex = 0;
+      displayCurrentSku();
+    });
+
+    clearSelectionBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      clearSelection();
+    });
+
+    // Submit handler
+    submitBtn.addEventListener('click', async () => {
+      const currentSku = allSkus[currentSkuIndex];
+      if (!currentSku) {
+        showModal('No SKU to submit.');
+        return;
+      }
+
+      // Global status checkboxes (fallback for images without per-image statuses)
+      const globalValuesRaw = Array.from(
+        document.querySelectorAll('input[name="qc_option"]:checked')
+      ).map(cb => cb.value);
+      const globalValues = globalValuesRaw.map(v => (statusChoiceMap[v] ?? v)); // map option1->Option 1
+
+      const buildBaseFormData = () => {
+        const fd = new URLSearchParams();
+        fd.append(entryIds.email, emailSelect.value);
+        fd.append(entryIds.teamName, teamNameSelect.value);
+        fd.append(entryIds.skuName, currentSku.name || '');
+        fd.append(entryIds.skuId, currentSku.id || '');
+        return fd;
+      };
+
+      // If images selected → N posts (one per image)
+      const selectedImages = getSelectedImagesForCurrentSku();
+      if (selectedImages.length > 0) {
+        const expectsImageId = entryIds.imageId && entryIds.imageId.startsWith('entry.');
+        if (expectsImageId && selectedImages.some(img => !img.imageId)) {
+          showModal('One or more selected images do not have image_id in the CSV. Please update the feed or deselect those images.');
+          return;
         }
-    </script>
+
+        showModal(`Submitting ${selectedImages.length} entr${selectedImages.length>1?'ies':'y'}...`);
+
+        for (let i = 0; i < selectedImages.length; i++) {
+          const img = selectedImages[i];
+          const fd = buildBaseFormData();
+
+          // Decide statuses to send for THIS image
+          const perSet = img.imageId ? perImageIssues.get(img.imageId) : null;
+          let statuses = perSet && perSet.size ? Array.from(perSet) : (globalValues.length ? globalValues : ['Done']);
+          // Ensure 'Done' is exclusive if mixed (safety)
+          if (statuses.includes('Done') && statuses.length > 1) statuses = ['Done'];
+
+          // Append statuses
+          statuses.forEach(s => fd.append(entryIds.issueOptions, s));
+
+          // Per-image fields
+          if (entryIds.imageId && img.imageId) fd.append(entryIds.imageId, img.imageId);
+          if (entryIds.imageUrl && img.url) fd.append(entryIds.imageUrl, img.url);
+          if (entryIds.imageCategory && img.category) fd.append(entryIds.imageCategory, img.category);
+          if (entryIds.frameSeqNo && (img.sequenceNo || img.sequenceNo === 0)) fd.append(entryIds.frameSeqNo, String(img.sequenceNo));
+
+          await postToForm(fd);
+          if (POST_DELAY_MS > 0) await sleep(POST_DELAY_MS);
+        }
+
+        modal.classList.add('hidden'); // close progress modal
+
+        // Move to next SKU
+        currentSkuIndex++;
+        displayCurrentSku();
+        return;
+      }
+
+      // Else: single SKU-level submission (original behavior)
+      try {
+        const fd = buildBaseFormData();
+        const statuses = globalValues.length ? globalValues : ['Done'];
+        statuses.forEach(s => fd.append(entryIds.issueOptions, s));
+        await postToForm(fd);
+        currentSkuIndex++;
+        displayCurrentSku();
+      } catch (err) {
+        console.error('Submission error:', err);
+        showModal('An error occurred during submission. Please try again.');
+      }
+    });
+
+    // Hotkeys
+    document.addEventListener('keydown', (e) => {
+      if (qcView.classList.contains('hidden')) return;
+      switch (e.key) {
+        case '1': document.querySelector('input[value="Sequence"]').click(); break;
+        case '2': document.querySelector('input[value="Tilt"]').click(); break;
+        case '3': document.querySelector('input[value="Issue"]').click(); break;
+        case '4': document.querySelector('input[value="option1"]').click(); break;
+        case '5': document.querySelector('input[value="option2"]').click(); break;
+        case 'Enter': submitBtn.click(); break;
+        case 'Escape':
+          if (!zoomOverlay.classList.contains('hidden')) closeZoom();
+          break;
+      }
+    });
+
+    /***** INIT *****/
+    (async function init() {
+      const csvText = await fetchCsvData();
+      if (!csvText) return;
+
+      parsedData = parseCsv(csvText);
+
+      // Populate team dropdown
+      parsedData.teamNames.forEach(team => {
+        const opt = document.createElement('option');
+        opt.value = team;
+        opt.textContent = team;
+        teamNameSelect.appendChild(opt);
+      });
+    })();
+  </script>
 </body>
 </html>
